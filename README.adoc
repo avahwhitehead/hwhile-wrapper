@@ -1,0 +1,166 @@
+= HWhile Wrapper
+Alaric Whitehead <aw548@sussex.ac.uk>, Supervisor: Dr Bernhard Reus <bernhard@sussex.ac.uk>
+1.0, 14 November, 2020
+:doctype: article
+:icons: font
+//Local URL aliases:
+:license: ./LICENSE.md
+:wiki: ./wiki
+//URL aliases:
+:chai: https://www.npmjs.com/package/chai
+:electron: https://www.electronjs.org/
+:git: https://git-scm.com/
+:github-ssh: https://github.blog/2020-12-15-token-authentication-requirements-for-git-operations/
+:github-ssh-instructions: https://docs.github.com/en/github/authenticating-to-github/connecting-to-github-with-ssh
+:hwhile: https://github.com/alexj136/HWhile
+:mocha: https://www.npmjs.com/package/mocha
+:n: https://www.npmjs.com/package/n
+:node: https://nodejs.org/en/
+:stack: https://docs.haskellstack.org/en/stable/install_and_upgrade/
+:whide: https://github.com/sonrad10/Whide
+
+This module is a JavaScript/TypeScript wrapper around the link:{hwhile}[HWhile] interpreter for Dr Reus' WHILE language.
+It is primarily developed for use in the link:{whide}[Whide IDE] for the same language.
+
+[#sect:getting-started]
+== Getting Started
+
+These instructions will get you a copy of the project up and running on your local machine for development and testing purposes.
+
+[#subsect:prerequisites]
+=== Prerequisites
+
+* link:{git}[Git] - for downloading the repository.
++
+Preferably with SSH access configured;
+see link:{github-ssh}[GitHub's post] about requiring tokens for git operations.
+You can set up SSH access using link:{github-ssh-instructions}[these instructions].
+
+* link:{node}[Node.js 12.19 and NPM 6.14] or newer - for running the code.
++
+After you have a version of npm installed, I recommend using the link:{n}[`n` package] to manage node/npm versions and updates.
+
+* link:{hwhile}[HWhile] - For running WHILE programs
++
+See <<sect:install-hwhile>> for a quick installation guide with solutions to some common issues.
+
+[#subsect:installing]
+=== Installing
+
+. *Clone the repository:*
++
+Using SSH:
++
+[source]
+----
+git clone https://github.com/sonrad10/hwhile-wrapper
+----
++
+Or using a username/password:
++
+[source]
+----
+git clone https://github.com/sonrad10/hwhile-wrapper
+----
+
+
+. *Navigate into the cloned directory*
++
+[source]
+----
+cd hwhile-wrapper/
+----
+
+
+. *Optionally, switch to the development branch:*
++
+[source]
+----
+git checkout development
+----
+
+
+. *Install the dependencies*
++
+[source]
+----
+npm install
+----
+
+. *Run the tests*
++
+[source]
+----
+npm run test
+----
+
+[#subsect:testing]
+== Running the tests
+
+Simply run the following command to run the tests:
+
+[source]
+----
+npm run test
+----
+
+Testing is done using the link:{mocha}[mocha] testing framework, and the link:{chai}[chai] assertion library.
+
+[#subsect:program-information]
+== Program Information
+
+//TODO: Write program information section
+
+*TODO: Write this*
+
+[#sect:install-hwhile]
+== Installing HWhile
+
+=== Installing Haskell Stack
+* The recommended install method is to use the link:{stack}[Haskell Stack]. On Linux, use the following command:
++
+[source]
+----
+curl -sSL https://get.haskellstack.org/ | sh
+----
+
+* Run
++
+[source]
+----
+stack init
+----
+
+* You should also make sure `+~/.local/bin+` is in your `+$PATH+` as this is where the installed programs will be placed.
+
+=== Installing dependencies
+
+If this is your first time installing HWhile, you may need to install the `+happy+` and `+alex+` packages:
+
+[source]
+----
+stack install happy alex
+----
+
+=== Installing HWhile
+
+Finally, to install HWhile, run this command:
+
+[source]
+----
+stack install --resolver=lts-8.0 hwhile
+----
+
+Using the default resolver causes dependency issues, which are not present with this version.
+
+NOTE: Stack's installed programs are removed from the path when you log out. If you get a command not found error, simply run this command again.
+
+[#subsect:license]
+== License
+
+This project is licensed under the MIT License - see link:{license}[LICENSE.md] file for details.
+
+[#subsect:acknowledgments]
+== Acknowledgments
+
+* &nbsp;

@@ -1,0 +1,28 @@
+{
+  "name": "@whide/hwhile-wrapper",
+  "version": "1.0.0",
+  "description": "A Node.js interface to the HWhile interpreter",
+  "main": "index.ts",
+  "type": "module",
+  "scripts": {
+    "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'"
+  },
+  "keywords": [],
+  "author": "Alaric Whitehead",
+  "license": "MIT",
+  "dependencies": {},
+  "devDependencies": {
+    "@types/chai": "^4.2.15",
+    "@types/mocha": "^8.2.0",
+    "@types/node": "^14.14.19",
+    "@typescript-eslint/eslint-plugin": "^4.15.0",
+    "@typescript-eslint/parser": "^4.15.0",
+    "babel-eslint": "^10.1.0",
+    "chai": "^4.3.0",
+    "eslint": "^6.7.2",
+    "esm": "^3.2.25",
+    "mocha": "^8.2.1",
+    "ts-node": "^9.1.1",
+    "typescript": "^4.1.3"
+  }
+}
