@@ -1,3 +1,5 @@
+import { SyntaxException } from "../../exceptions/SyntaxException";
+
 export type TOKEN_NIL = 'nil';
 export type TOKEN_OPEN = '<';
 export type TOKEN_CLOSE = '>';
@@ -16,6 +18,7 @@ export const DOT: TOKEN_DOT = '.';
 export default function lexTree(str: string) : TOKEN[] {
 	//Convert the string into a token list
 	let tokens: TOKEN[] = [];
+	let index = 0;
 	while (str) {
 		let found = false;
 		//Check the start of the string against each of the tokens
@@ -24,13 +27,16 @@ export default function lexTree(str: string) : TOKEN[] {
 				tokens.push(token);
 				//Remove the token from the start of the string
 				str = str.substr(token.length);
+				index += token.length;
 				//Mark the token as found
 				found = true;
 				break;
 			}
 		}
 		//Error if the token didn't match
-		if (!found) throw new Error(`Lexing error: Unrecognised value at '${str}'`);
+		if (!found) throw new Error(
+			`Unrecognised token at position ${index}`
+		);
 	}
 
 	return tokens;

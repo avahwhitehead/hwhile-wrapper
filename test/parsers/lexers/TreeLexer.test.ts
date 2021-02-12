@@ -36,4 +36,28 @@ describe('TreeLexer', function () {
 			expect(actual).to.eql(expected);
 		});
 	});
+
+	describe(`#lexTree('ni')`, function () {
+		it('should throw a syntax error', function () {
+			expect(() => {
+				lexTree('ni');
+			}).to.throw(Error, /^Unrecognised token/);
+		});
+	});
+
+	describe(`#lexTree('<nil.nol>')`, function () {
+		it('should throw a syntax error', function () {
+			expect(() => {
+				lexTree('<nil.nol>');
+			}).to.throw(Error, /^Unrecognised token/);
+		});
+	});
+
+	describe(`#lexTree('<nil,nil>')`, function () {
+		it('should throw a syntax error', function () {
+			expect(() => {
+				lexTree('<nil,nil>');
+			}).to.throw(Error, /^Unrecognised token/);
+		});
+	});
 });
