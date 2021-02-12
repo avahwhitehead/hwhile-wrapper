@@ -29,7 +29,7 @@ export class HWhileConnector {
 	 * Run the help command.
 	 * Equivalent to {@code hwhile -h}.
 	 */
-	help() {
+	help() : ChildProcessWithoutNullStreams {
 		return this.run_custom('', 'h');
 	}
 
@@ -37,7 +37,7 @@ export class HWhileConnector {
 	 * Start the interactive mode.
 	 * Equivalent to {@code hwhile -r}.
 	 */
-	interactive() {
+	interactive() : ChildProcessWithoutNullStreams {
 		return this.run_custom('', 'r');
 	}
 
@@ -45,7 +45,7 @@ export class HWhileConnector {
 	 * Run the version number command.
 	 * Equivalent to {@code hwhile -v}.
 	 */
-	version() {
+	version() : ChildProcessWithoutNullStreams {
 		return this.run_custom('', 'v');
 	}
 
@@ -56,7 +56,7 @@ export class HWhileConnector {
 	 * @param expr		Expression to pass as input to the program
 	 * @param debug_log	Whether to show the debugging log (equivalent to adding `d` to the flags)
 	 */
-	run(file: string, expr?: string, debug_log = false) {
+	run(file: string, expr?: string, debug_log = false) : ChildProcessWithoutNullStreams {
 		return this.run_custom(file, this._build_flags('', debug_log), expr);
 	}
 
@@ -120,13 +120,12 @@ export class HWhileConnector {
 		return this.run_custom(file, this._build_flags("La", debug_log, show_invalid), expr);
 	}
 
-
 	/**
 	 * Run the unparser on a file
 	 * Equivalent to {@code hwhile -u <file>}.
 	 * @param file			Path to the while program file
 	 */
-	run_unparser(file: string) {
+	run_unparser(file: string) : ChildProcessWithoutNullStreams {
 		return this.run_custom(file, 'u');
 	}
 
@@ -137,7 +136,7 @@ export class HWhileConnector {
 	 * @param flags		The flags to provide to hwhile
 	 * @param expr		Expression to pass as input to the program
 	 */
-	run_custom(file: string, flags?: string, expr?: string): ChildProcessWithoutNullStreams {
+	run_custom(file: string, flags?: string, expr?: string) : ChildProcessWithoutNullStreams {
 		let args: string[] = [];
 		//Add all the program arguments to a list
 		if (flags) args.push(`-${flags}`)
