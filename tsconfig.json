@@ -3,6 +3,7 @@
     "target": "es5",
     "module": "ESNext",
     "declaration": true,
+    "moduleResolution": "Node",
     "outDir": "./out",
     "strict": true,
     "types": [

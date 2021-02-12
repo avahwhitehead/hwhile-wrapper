@@ -2,7 +2,7 @@
   "name": "@whide/hwhile-wrapper",
   "version": "1.0.0",
   "description": "A Node.js interface to the HWhile interpreter",
-  "main": "index.ts",
+  "main": "src/index.ts",
   "type": "module",
   "scripts": {
     "build": "tsc",
