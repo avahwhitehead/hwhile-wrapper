@@ -5,6 +5,7 @@
   "main": "index.ts",
   "type": "module",
   "scripts": {
+    "build": "tsc",
     "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'"
   },
   "keywords": [],
@@ -23,6 +24,6 @@
     "esm": "^3.2.25",
     "mocha": "^8.2.1",
     "ts-node": "^9.1.1",
-    "typescript": "^4.1.3"
+    "typescript": "^4.1.5"
   }
 }
