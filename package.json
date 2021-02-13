@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "build": "tsc",
-    "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'"
+    "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'",
+    "test-specific": "mocha -r chai -r esm -r ts-node/register"
   },
   "keywords": [],
   "author": "Alaric Whitehead",
