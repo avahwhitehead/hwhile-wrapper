@@ -191,7 +191,7 @@ export class InteractiveHWhileConnector {
 	 */
 	expression(expr: string): void {
 		if (!this._shell) return;
-		this._shell?.stdin.write(expr + '\n');
+		this._shell.stdin.write(expr + '\n');
 	}
 	/**
 	 * Execute a while command.
@@ -199,7 +199,7 @@ export class InteractiveHWhileConnector {
 	 */
 	command(comm: string) : void {
 		if (!this._shell) return;
-		this._shell?.stdin.write(comm + '\n');
+		this._shell.stdin.write(comm + '\n');
 	}
 	/**
 	 * Print the help message.
