@@ -1,5 +1,6 @@
-import { HWhileConnector } from "./HwhileConnector";
+import { HWhileConnector, InteractiveHWhileConnector } from "./HwhileConnector";
 
 export {
 	HWhileConnector,
+	InteractiveHWhileConnector,
 };
