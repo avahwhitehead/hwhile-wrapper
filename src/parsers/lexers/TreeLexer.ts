@@ -34,7 +34,7 @@ export default function lexTree(str: string) : TOKEN[] {
 			}
 		}
 		//Error if the token didn't match
-		if (!found) throw new Error(
+		if (!found) throw new SyntaxException(
 			`Unrecognised token at position ${index}`
 		);
 	}
