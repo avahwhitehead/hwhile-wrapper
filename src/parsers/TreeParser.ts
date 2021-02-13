@@ -13,9 +13,7 @@ function _expectToken(token : TOKEN|undefined, ...expected: TOKEN[]) : TOKEN {
 	if (expected.indexOf(token) === -1) {
 		let expectedString: string;
 		if (expected.length === 1) expectedString = `'${expected[0]}'`;
-			// throw new SyntaxError(`Unexpected token: Expected '${expected}' but got '${token}'`);
 		else expectedString = `one of ['${expected.join("', '")}']`;
-			// throw new SyntaxError(`Unexpected token: Expected one of ['${expected.join("', '")}'] but got '${token}'`);
 		throw new SyntaxException(`Unexpected token: Expected ${expectedString} but got '${token}'`);
 	}
 	//Return the token
@@ -49,13 +47,21 @@ function _tokensToTree(tokenList: TOKEN[]) : BinaryTree {
 			left: left,
 			right: right,
 		};
-	} else {	//`nil` - represented by `null`
-		return null;
 	}
+	//Otherwise `nil` - represented by `null`
+	return null;
 }
 
 export default function parseTree(str: string) : BinaryTree {
+	//Run the lexer to convert to a token list
 	const tokenList: TOKEN[] = lexTree(str);
-	// console.log(tokenList);
-	return _tokensToTree(tokenList);
+	//Parse into a binary tree
+	const tree : BinaryTree = _tokensToTree(tokenList);
+
+	//Shouldn't be any unparsed tokens
+	if (tokenList.length > 0) {
+		throw new SyntaxException(`Unexpected token: Expected end of statement but got '${tokenList.shift()}'`);
+	}
+	//Return the tree
+	return tree;
 }
