@@ -7,7 +7,16 @@ import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
 export class InteractiveHWhileConnector {
 	private _hWhileConnector: HWhileConnector;
 	private _shell: ChildProcessWithoutNullStreams | undefined;
+	//Callback queue for when HWhile finishes outputting
 	private readonly _dataCallbacks: ((lines: string[]) => void)[] = [];
+	//Store the outputted lines across multiple 'data' events until an input prompt is detected
+	private _outputHolder : string[] = [];
+
+	//TODO: Queue commands for execution rather than sending immediately
+
+	//TODO: Add an `InteractiveHWhileConnector.on("output")` in place of `... ._shell.stdout.on("data")`
+	//	Would allow filtering out unnecessary info
+	//	Would allow showing inputs on stdout
 
 	constructor(props: HWhileConnectorProps) {
 		this._hWhileConnector = new HWhileConnector(props);
@@ -16,7 +25,7 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Start a HWhile interactive process
  	 */
-	public start() : ChildProcessWithoutNullStreams {
+	public async start() : Promise<ChildProcessWithoutNullStreams> {
 		this._shell = this._hWhileConnector.interactive();
 
 		//Listen for output from HWhile
@@ -25,18 +34,39 @@ export class InteractiveHWhileConnector {
 			const str = data.toString();
 			//Split the string into lines
 			let lines = str.split(/\r?\n\s*/);
-			//Get the last line
+			//Get the last line (will either be data or an input prompt)
 			const last = lines.pop();
-			//Check if the program is prompting for input
-			if (last?.match(/^HWhile>\s*$/)) {
-				//See if there are any callbacks waiting for data
-				let dataCallback: ((data: string[]) => void) | undefined = this._dataCallbacks.shift();
-				//Call the callback
-				if (dataCallback) dataCallback(lines);
+			//Append all but the last line to the line store
+			this._outputHolder.push(...lines);
+			if (last) {
+				//If the last line is prompting for input
+				if (last.match(/^HWhile>\s*$/)) {
+					//See if there are any callbacks waiting for data
+					let dataCallback: ((data: string[]) => void) | undefined = this._dataCallbacks.shift();
+					//Call the callback with the output data
+					if (dataCallback) dataCallback(this._outputHolder);
+					//Clear the line store
+					this._outputHolder = []
+				} else {
+					//The last line is data - add it to the output store
+					this._outputHolder.push(last);
+				}
 			}
 		});
 
-		return this._shell;
+		//Don't return the connector until the first input prompt has been received
+		let shell: ChildProcessWithoutNullStreams = this._shell;
+		return new Promise((resolve) => {
+			this._dataCallbacks.push(() => resolve(shell));
+		});
+	}
+
+	/**
+	 * Stop the underlying HWhile process, if it is running
+	 */
+	public stop() : void {
+		if (!this._shell) return;
+		this._shell.kill();
 	}
 
 	// ========
