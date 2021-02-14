@@ -7,13 +7,35 @@ import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
 export class InteractiveHWhileConnector {
 	private _hWhileConnector: HWhileConnector;
 	private _shell: ChildProcessWithoutNullStreams | undefined;
+	private readonly _dataCallbacks: ((lines: string[]) => void)[] = [];
 
 	constructor(props: HWhileConnectorProps) {
 		this._hWhileConnector = new HWhileConnector(props);
 	}
 
+	/**
+	 * Start a HWhile interactive process
+ 	 */
 	public start() : ChildProcessWithoutNullStreams {
 		this._shell = this._hWhileConnector.interactive();
+
+		//Listen for output from HWhile
+		this._shell.stdout.on("data", (data: Buffer) => {
+			//Convert the data to a string
+			const str = data.toString();
+			//Split the string into lines
+			let lines = str.split(/\r?\n\s*/);
+			//Get the last line
+			const last = lines.pop();
+			//Check if the program is prompting for input
+			if (last?.match(/^HWhile>\s*$/)) {
+				//See if there are any callbacks waiting for data
+				let dataCallback: ((data: string[]) => void) | undefined = this._dataCallbacks.shift();
+				//Call the callback
+				if (dataCallback) dataCallback(lines);
+			}
+		});
+
 		return this._shell;
 	}
 
@@ -22,28 +44,30 @@ export class InteractiveHWhileConnector {
 	// ========
 
 	/**
-	 * Evaluate a while expression.
-	 * @param expr	Expression to evaluate
+	 * Evaluate a while expression or run a command.
+	 * @param expr	String to evaluate
+	 * @returns	The string outputted by hwhile to stdout while running, split into lines
 	 */
-	expression(expr: string): void {
-		if (!this._shell) return;
-		this._shell.stdin.write(expr + '\n');
+	execute(expr: string): Promise<string[]> {
+		return new Promise((resolve, reject) => {
+			if (!this._shell) {
+				reject("No shell to access. Try calling `this.start()`.");
+				return;
+			}
+			if (expr.charAt(expr.length - 1) !== '\n') expr += '\n';
+
+			this._dataCallbacks.push((data: string[]) => resolve(data));
+			this._shell.stdin.write(expr);
+		})
 	}
-	/**
-	 * Execute a while command.
-	 * @param comm	Command to execute
-	 */
-	command(comm: string) : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(comm + '\n');
-	}
+
 	/**
 	 * Print the help message.
 	 */
-	help() : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(":help\n");
+	async help() : Promise<void> {
+		await this.execute(':help');
 	}
+
 	/**
 	 * Load a while program 'p' for execution with argument {@code expr}.
 	 * Note that this clears the current store contents.
@@ -55,6 +79,7 @@ export class InteractiveHWhileConnector {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:load ${p} ${expr}\n`);
 	}
+
 	/**
 	 * Run the loaded program up until the next breakpoint.
 	 */
@@ -62,6 +87,7 @@ export class InteractiveHWhileConnector {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:run\n`);
 	}
+
 	/**
 	 * Step through a single line of the loaded program.
 	 */
@@ -69,13 +95,30 @@ export class InteractiveHWhileConnector {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:step\n`);
 	}
+
 	/**
 	 * Print the current store contents.
 	 */
-	store() : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(`:store\n`);
+	async store() : Promise<Map<string, BinaryTree>> {
+		// TODO: save variable values
+		// ([program]) [VAR] = [VAL]
+		// ...
+		let lines = await this.execute(`:store\n`);
+		const variables : Map<string, BinaryTree> = new Map<string, BinaryTree>();
+
+		console.log("----");
+		let matches = lines.map(line => line.match(/^\((.+?)\) (.+?) = (.+)$/));
+		let matches_nn : RegExpMatchArray[] = matches.filter(m => !!m) as RegExpMatchArray[];
+		for (let m of matches_nn) {
+			let s = `${m[1]}#${m[2]}:\t${to_integer(parseTree(m[3]))}`;
+			console.log(s);
+			variables.set(m[2], parseTree(m[3]))
+		}
+		console.log("----");
+
+		return variables;
 	}
+
 	/**
 	 * Set the print mode to mode 'm'.
 	 * Valid modes are i, iv, l, li, liv, L, and La.
@@ -88,6 +131,7 @@ export class InteractiveHWhileConnector {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:printmode ${m}\n`);
 	}
+
 	/**
 	 * Change the current file search path to 'dir'.
 	 * @param dir	The directory to switch to.
@@ -97,6 +141,7 @@ export class InteractiveHWhileConnector {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:cd ${dir}\n`);
 	}
+
 	/**
 	 * Print all breakpoints.
 	 */
@@ -104,6 +149,7 @@ export class InteractiveHWhileConnector {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:break\n`);
 	}
+
 	/**
 	 * Add a breakpoint to line 'n' of the loaded program.
 	 * Add a breakpoint to line 'n' of program 'p'.
@@ -113,6 +159,7 @@ export class InteractiveHWhileConnector {
 		if (p) this._shell.stdin.write(`:break ${n} ${p}\n`);
 		else this._shell.stdin.write(`:break ${n}\n`);
 	}
+
 	/**
 	 * Delete the breakpoint on line 'n' of the loaded
 	 * Delete the breakpoint on line 'n' of program 'p'.
