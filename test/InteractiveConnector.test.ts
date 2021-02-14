@@ -1,10 +1,14 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import { InteractiveHWhileConnector } from "../src";
+import { ProgramInfo } from "../src/InteractiveConnector";
+import * as path from "path";
 
 async function setup() : Promise<InteractiveHWhileConnector> {
+	let working_dir = path.resolve('.', "resources");
 	let connector = new InteractiveHWhileConnector({
-		hwhile: "hwhile"
+		hwhile: "hwhile",
+		cwd: working_dir,
 	});
 	await connector.start();
 	return connector;
@@ -50,6 +54,52 @@ describe('Interactive HWhile Connector', function () {
 			} finally {
 				await teardown(connector);
 			}
+		});
+	});
+
+	describe(`#load(...)`, function () {
+		describe(`#load('count', '[4, 5]')`, function () {
+			it('should load the `count` program', async function () {
+				let connector = await setup();
+				try {
+					let programInfo: ProgramInfo = await connector.load('count', '[4, 5]');
+					expect(programInfo.name).to.eql('count');
+					expect(programInfo.variables).to.eql(new Map());
+					expect(programInfo.breakpoints).to.eql([]);
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+
+		describe(`#load('does_not_exist', '[4, 5]')`, function () {
+			it('should throw a Not Found error', async function () {
+				let connector = await setup();
+				return connector.load('does_not_exist', '[4, 5]')
+					.then(() => { throw new Error('was not supposed to succeed'); })
+					.catch(m => { expect(m).to.match(/.*No such file or directory.*/); })
+					.finally(async () => teardown(connector));
+			});
+		});
+
+		describe(`#load('count', '')`, function () {
+			it('should throw an Arguments Required error', async function () {
+				let connector = await setup();
+				return connector.load('count', '')
+					.then(() => { throw new Error('was not supposed to succeed'); })
+					.catch(m => { expect(m).to.match(/.*Please supply .+ an argument literal.*/); })
+					.finally(async () => teardown(connector));
+			});
+		});
+
+		describe(`#load('', '')`, function () {
+			it('should throw an Program Required error', async function () {
+				let connector = await setup();
+				return connector.load('', '')
+					.then(() => { throw new Error('was not supposed to succeed'); })
+					.catch(m => { expect(m).to.match(/.*Please supply .+ an argument literal.*/); })
+					.finally(async () => teardown(connector));
+			});
 		});
 	});
 });

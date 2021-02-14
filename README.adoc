@@ -163,4 +163,4 @@ This project is licensed under the MIT License - see link:{license}[LICENSE.md] 
 [#subsect:acknowledgments]
 == Acknowledgments
 
-* &nbsp;
+* The link:resources/[WHILE programs] used in the tests are sourced from AlexJ's link:{hwhile}[HWhile] interpreter

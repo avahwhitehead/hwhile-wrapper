@@ -11,6 +11,8 @@ export class InteractiveHWhileConnector {
 	private readonly _dataCallbacks: ((lines: string[]) => void)[] = [];
 	//Store the outputted lines across multiple 'data' events until an input prompt is detected
 	private _outputHolder : string[] = [];
+	//Program information store
+	private _programInfo: ProgramInfo|undefined;
 
 	//TODO: Queue commands for execution rather than sending immediately
 
@@ -105,9 +107,24 @@ export class InteractiveHWhileConnector {
 	 * 				For a program 'p', this will load from the file 'p.while' in the current directory.
 	 * @param expr	Argument to provide to the program {@code p}.
 	 */
-	load(p : string, expr : string) : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(`:load ${p} ${expr}\n`);
+	async load(p : string, expr : string) : Promise<ProgramInfo> {
+		//Run the command
+		let lines : string[] = await this.execute(`:load ${p} ${expr}`);
+		//Should only be one line (with text), but running this to be more flexible
+		lines = lines.filter(l => !!l);
+		let result = lines.shift();
+
+		if (result && result.match(/^Program '(.+)' loaded/)) {
+			this._programInfo = {
+				name: p,
+				variables: new Map<string, BinaryTree>(),
+				breakpoints: [],
+			};
+			//TODO: Check for breakpoints
+			return this._programInfo;
+		} else {
+			throw new Error(`Unexpected output: "${result}"`);
+		}
 	}
 
 	/**
