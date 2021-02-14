@@ -150,19 +150,6 @@ export class InteractiveHWhileConnector {
 	}
 
 	/**
-	 * Set the print mode to mode 'm'.
-	 * Valid modes are i, iv, l, li, liv, L, and La.
-	 * Run 'hwhile -h' for more info on print modes.
-	 * @param m		The print mode to use.
-	 				These are the same as the flags used by ${HWhileConnector} methods.
-	 */
-	setPrintMode(m: 'i'|'iv'|'l'|'li'|'liv'|'L'|'La') : void {
-		//TODO: Is there a way to reset `printmode` to just 'tree'?
-		if (!this._shell) return;
-		this._shell.stdin.write(`:printmode ${m}\n`);
-	}
-
-	/**
 	 * Change the current file search path to 'dir'.
 	 * @param dir	The directory to switch to.
 	 * 				This must be an absolute path.
