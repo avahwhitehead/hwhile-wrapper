@@ -154,21 +154,14 @@ export class InteractiveHWhileConnector {
 	 * Print the current store contents.
 	 */
 	async store() : Promise<Map<string, BinaryTree>> {
-		// TODO: save variable values
-		// ([program]) [VAR] = [VAL]
-		// ...
 		let lines = await this.execute(`:store\n`);
 		const variables : Map<string, BinaryTree> = new Map<string, BinaryTree>();
 
-		console.log("----");
+		//Read the program/name/value from the lines
 		let matches = lines.map(line => line.match(/^\((.+?)\) (.+?) = (.+)$/));
+		//Remove any invalid lines
 		let matches_nn : RegExpMatchArray[] = matches.filter(m => !!m) as RegExpMatchArray[];
-		for (let m of matches_nn) {
-			let s = `${m[1]}#${m[2]}:\t${to_integer(parseTree(m[3]))}`;
-			console.log(s);
-			variables.set(m[2], parseTree(m[3]))
-		}
-		console.log("----");
+		for (let m of matches_nn) variables.set(m[2], parseTree(m[3]));
 
 		return variables;
 	}
