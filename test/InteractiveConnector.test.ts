@@ -3,6 +3,7 @@ import { describe, it } from "mocha";
 import { InteractiveHWhileConnector } from "../src";
 import { ProgramInfo } from "../src/InteractiveConnector";
 import * as path from "path";
+import { CustomDict } from "../src/types/CustomDict";
 
 async function setup() : Promise<InteractiveHWhileConnector> {
 	let working_dir = path.resolve('.', "resources");
@@ -99,6 +100,38 @@ describe('Interactive HWhile Connector', function () {
 					.then(() => { throw new Error('was not supposed to succeed'); })
 					.catch(m => { expect(m).to.match(/.*Please supply .+ an argument literal.*/); })
 					.finally(async () => teardown(connector));
+			});
+		});
+	});
+
+	describe(`#breakpoints(...)`, function () {
+		describe(`#breakpoints()`, async function () {
+			it('should add and store multiple breakpoints for multiple programs', async function () {
+				let connector = await setup();
+				//The breakpoints to add for different programs
+				let expected : CustomDict<number[]> = {
+					'prog1': [5,3,1],
+					'prog2': [2,4,6],
+				};
+				//Add all the breakpoints
+				for (let [prog, breakpoints] of Object.entries(expected)) {
+					for (let b of breakpoints) {
+						await connector.addBreakpoint(b, prog);
+					}
+				}
+
+				try {
+					let actual = await connector.breakpoints();
+					//Check all the programs (and only these programs) exist
+					expect(actual).to.have.all.keys(Object.keys(expected));
+					expect(expected).to.have.all.keys(Object.keys(actual));
+					//Check the breakpoints match
+					for (let key of Object.keys(actual)) {
+						expect(Array.from(actual[key])).to.have.same.members(expected[key]);
+					}
+				} finally {
+					await teardown(connector);
+				}
 			});
 		});
 	});

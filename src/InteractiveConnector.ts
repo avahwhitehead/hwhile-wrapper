@@ -1,4 +1,5 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
+import { CustomDict } from "./types/CustomDict";
 import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
 import parseTree, { BinaryTree } from "./parsers/TreeParser";
 
@@ -87,7 +88,7 @@ export class InteractiveHWhileConnector {
 	 * @param expr	String to evaluate
 	 * @returns	The string outputted by hwhile to stdout while running, split into lines
 	 */
-	execute(expr: string): Promise<string[]> {
+	async execute(expr: string): Promise<string[]> {
 		return new Promise((resolve, reject) => {
 			if (!this._shell) {
 				reject("No shell to access. Try calling `this.start()`.");
@@ -117,8 +118,6 @@ export class InteractiveHWhileConnector {
 	async load(p : string, expr : string) : Promise<ProgramInfo> {
 		//Run the command
 		let lines : string[] = await this.execute(`:load ${p} ${expr}`);
-		//Should only be one line (with text), but running this to be more flexible
-		lines = lines.filter(l => !!l);
 		let result = lines.shift();
 
 		if (result && result.match(/^Program '(.+)' loaded/)) {
@@ -137,7 +136,7 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Run the loaded program up until the next breakpoint.
 	 */
-	run() : void {
+	async run() : Promise<void> {
 		if (!this._shell) return;
 		this._shell.stdin.write(`:run\n`);
 	}
@@ -154,14 +153,11 @@ export class InteractiveHWhileConnector {
 	 * Print the current store contents.
 	 */
 	async store() : Promise<Map<string, BinaryTree>> {
-		let lines = await this.execute(`:store\n`);
+		let lines = await this.execute(`:store`);
 		const variables : Map<string, BinaryTree> = new Map<string, BinaryTree>();
 
-		//Read the program/name/value from the lines
-		let matches = lines.map(line => line.match(/^\((.+?)\) (.+?) = (.+)$/));
-		//Remove any invalid lines
-		let matches_nn : RegExpMatchArray[] = matches.filter(m => !!m) as RegExpMatchArray[];
-		for (let m of matches_nn) variables.set(m[2], parseTree(m[3]));
+		let matches = this._runMatch(lines,/^\((.+?)\) (.+?) = (.+)$/);
+		for (let match of matches) variables.set(match[2], parseTree(match[3]));
 
 		return variables;
 	}
@@ -177,30 +173,42 @@ export class InteractiveHWhileConnector {
 	}
 
 	/**
-	 * Print all breakpoints.
+	 * Get all the breakpoints.
 	 */
-	showBreakpoints() : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(`:break\n`);
+	async breakpoints() : Promise<CustomDict<Set<number>>> {
+		let lines = await this.execute(`:break`);
+		let matches = this._runMatch(lines, /^Program '(.+)', line (\d+)\.$/);
+		let breakpoints: CustomDict<Set<number>> = {};
+		for (let match of matches) {
+			let p: string = match[1];
+			let b: Set<number> = breakpoints[p] || new Set<number>();
+			b.add(Number.parseInt(match[2]));
+			breakpoints[p] = b;
+		}
+		return breakpoints;
 	}
 
 	/**
-	 * Add a breakpoint to line 'n' of the loaded program.
-	 * Add a breakpoint to line 'n' of program 'p'.
+	 * Add a breakpoint on line 'n' of the program 'p', or the loaded program if `p` is not provided.
+	 * @param n	Line number to add the break point
+	 * @param p	Optional program to add the breakpoint to
 	 */
-	addBreakpoint(n: number, p?: string) : void {
-		if (!this._shell) return;
-		if (p) this._shell.stdin.write(`:break ${n} ${p}\n`);
-		else this._shell.stdin.write(`:break ${n}\n`);
+	async addBreakpoint(n: number, p?: string) : Promise<void> {
+		//TODO: Require a loaded program
+		let lines: string[] = await this.execute(`:break ${n} ${p || ''}`);
+		let last = lines.shift();
+		if (!last || !last.match(/^Breakpoint set in program .+ at line \d+\.$/)) {
+			throw new Error(`Unexpected output: "${last}"`);
+		}
 	}
 
 	/**
-	 * Delete the breakpoint on line 'n' of the loaded
-	 * Delete the breakpoint on line 'n' of program 'p'.
+	 * Run a reject match against all elements of a list, removing non-matching items
+	 * @param lines		The list to run the matcher on
+	 * @param matcher	RegEx matcher pattern
 	 */
-	delBreakpoint(n: number, p?: string) : void {
-		if (!this._shell) return;
-		if (p) this._shell.stdin.write(`:delbreak ${n} ${p}\n`);
-		else this._shell.stdin.write(`:delbreak ${n}\n`);
+	private _runMatch(lines: string[], matcher: string|RegExp) : RegExpMatchArray[] {
+		let matches = lines.map(line => line.match(matcher));
+		return matches.filter(m => !!m) as RegExpMatchArray[];
 	}
 }
