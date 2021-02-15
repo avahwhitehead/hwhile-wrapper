@@ -134,5 +134,31 @@ describe('Interactive HWhile Connector', function () {
 				}
 			});
 		});
+
+		describe(`#breakpoints()`, async function () {
+			it('should add and store multiple breakpoints for a single loaded program', async function () {
+				let connector = await setup();
+
+				//Load the program
+				let PROG = 'count';
+				await connector.load(PROG, '[1,2,3]');
+
+				//The breakpoints to add
+				let expected : number[] = [5,3,1];
+				//Add all the breakpoints
+				for (let b of expected) {
+					await connector.addBreakpoint(b);
+				}
+
+				try {
+					let actual = await connector.breakpoints();
+					//Check all the programs (and only these programs) exist
+					expect(actual).to.have.key(PROG);
+					expect(Array.from(actual[PROG])).to.have.same.members(expected);
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
 	});
 });
