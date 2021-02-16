@@ -129,6 +129,15 @@ describe('Interactive HWhile Connector', function () {
 					for (let key of Object.keys(actual)) {
 						expect(Array.from(actual[key])).to.have.same.members(expected[key]);
 					}
+
+					//Remove the breakpoints from prog1
+					for (let b of expected['prog1']) await connector.delBreakpoint(b, 'prog1');
+					let actual_removed = await connector.breakpoints();
+					//Check prog1 has no breakpoints
+					expect(actual_removed).to.not.have.key('prog1');
+					//Check prog2 has not changed
+					expect(actual_removed).to.have.key('prog2');
+					expect(Array.from(actual_removed['prog2'])).to.deep.equal(expected['prog2']);
 				} finally {
 					await teardown(connector);
 				}
@@ -144,17 +153,38 @@ describe('Interactive HWhile Connector', function () {
 					let PROG = 'count';
 					await connector.load(PROG, '[1,2,3]');
 
-					//The breakpoints to add
-					let expected : number[] = [5,3,1];
-					//Add all the breakpoints
-					for (let b of expected) {
-						await connector.addBreakpoint(b);
-					}
+					//The breakpoint lines to use
+					let expected : number[] = [7,6,5,3,1];
 
+					//====
+					//Test adding the breakpoints
+					//====
+					for (let b of expected) await connector.addBreakpoint(b);
+					//Get the stored breakpoints
 					let actual = await connector.breakpoints();
-					//Check all the programs (and only these programs) exist
+					//Check the program exists in the result and has only these breakpoints
 					expect(actual).to.have.key(PROG);
 					expect(Array.from(actual[PROG])).to.have.same.members(expected);
+
+					//====
+					//Test removing the breakpoints
+					//====
+					//Save one breakpoint
+					let i = Math.floor(Math.random() * expected.length);
+					let v = expected[i];
+					expected.splice(i, 1);
+
+					//Remove the remaining breakpoints
+					for (let b of expected) await connector.delBreakpoint(b);
+					let actual_removed = await connector.breakpoints();
+					//Check the program exists in the result and has only one breakpoint
+					expect(actual_removed).to.have.key(PROG);
+					expect(Array.from(actual_removed[PROG])).to.deep.equal([v]);
+
+					//Delete the remaining breakpoint
+					await connector.delBreakpoint(v);
+					let actual_removed_2 = await connector.breakpoints();
+					expect(actual_removed_2).to.not.have.key(PROG);
 				} finally {
 					await teardown(connector);
 				}

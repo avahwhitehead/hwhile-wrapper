@@ -203,6 +203,23 @@ export class InteractiveHWhileConnector {
 	}
 
 	/**
+	 * Delete the breakpoint on line 'n' of the program 'p', or the loaded program if `p` is not provided.
+	 * @param n	Line number to remove the break point
+	 * @param p	Optional program to remove the breakpoint from
+	 */
+	async delBreakpoint(n: number, p?: string) : Promise<void> {
+		let lines: string[] = await this.execute(`:delbreak ${n} ${p || ''}`);
+		let last = lines.shift();
+		if (!last || !last.match(/^Breakpoint removed from program .+ at line \d+\.$/)) {
+			throw new Error(`Unexpected output: "${last}"`);
+		}
+	}
+
+	// ========
+	// Utils
+	// ========
+
+	/**
 	 * Run a reject match against all elements of a list, removing non-matching items
 	 * @param lines		The list to run the matcher on
 	 * @param matcher	RegEx matcher pattern
