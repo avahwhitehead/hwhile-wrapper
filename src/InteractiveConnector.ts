@@ -196,7 +196,9 @@ export class InteractiveHWhileConnector {
 	 * @param p	Optional program to add the breakpoint to
 	 */
 	async addBreakpoint(n: number, p?: string) : Promise<void> {
-		//TODO: Require a loaded program
+		//Error if HWhile won't be able to set the breakpoint
+		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
+
 		let lines: string[] = await this.execute(`:break ${n} ${p || ''}`);
 		let last = lines.shift();
 		if (!last || !last.match(/^Breakpoint set in program .+ at line \d+\.$/)) {
@@ -210,6 +212,9 @@ export class InteractiveHWhileConnector {
 	 * @param p	Optional program to remove the breakpoint from
 	 */
 	async delBreakpoint(n: number, p?: string) : Promise<void> {
+		//Error if HWhile won't be able to clear the breakpoint
+		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
+
 		let lines: string[] = await this.execute(`:delbreak ${n} ${p || ''}`);
 		let last = lines.shift();
 		if (!last || !last.match(/^Breakpoint removed from program .+ at line \d+\.$/)) {

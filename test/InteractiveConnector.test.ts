@@ -122,7 +122,17 @@ describe('Interactive HWhile Connector', function () {
 	});
 
 	describe(`#breakpoints(...)`, function () {
-		describe(`#breakpoints()`, async function () {
+		describe(`#breakpoints() - no program to use`, async function () {
+			it('should throw an error and fail to add the breakpoint', async function () {
+				let connector = await setup();
+				return connector.addBreakpoint(3)
+					.then(() => { throw new Error('was not supposed to succeed'); })
+					.catch(m => { expect(m).to.match(/.*Can't set breakpoints without a program.*/); })
+					.finally(async () => teardown(connector));
+			});
+		});
+
+		describe(`#breakpoints() - prog1/prog2`, async function () {
 			it('should add and store multiple breakpoints for multiple programs', async function () {
 				let connector = await setup();
 				try {
@@ -161,7 +171,7 @@ describe('Interactive HWhile Connector', function () {
 			});
 		});
 
-		describe(`#breakpoints()`, async function () {
+		describe(`#breakpoints() - default`, async function () {
 			it('should add and store multiple breakpoints for a single loaded program', async function () {
 				let connector = await setup();
 
