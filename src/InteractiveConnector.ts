@@ -9,6 +9,13 @@ export interface ProgramInfo {
 	breakpoints: number[],
 }
 
+export type StepResultType = { cause: 'breakpoint'; line: number; note?: string; }
+		| { cause: 'start' | 'done'; variable: string; value: BinaryTree }
+		| { cause: 'loop-exit' };
+
+export type RunResultType = { cause: 'breakpoint'; line: number; }
+		| { cause: 'done'; variable: string; value: BinaryTree };
+
 /**
  * Class for controlling HWhile's interactive mode
  */
@@ -139,7 +146,7 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Run the loaded program up until the next breakpoint, or the end of the program (whichever is first).
 	 */
-	async run() : Promise<{ cause: 'breakpoint'; line: number; } | { cause: 'done'; variable: string; value: BinaryTree }> {
+	async run() : Promise<RunResultType> {
 		if (!this._programInfo) throw new Error("No program to run");
 
 		//Run the program
@@ -151,7 +158,7 @@ export class InteractiveHWhileConnector {
 		if (!first) throw new Error("Expected output, received nothing");
 
 		//Object to return
-		let result : { cause: 'breakpoint'; line: number; } | { cause: 'done'; variable: string; value: BinaryTree };
+		let result : RunResultType;
 
 		let match;
 		if ((match = first.match(/^wrote (.+?) = (.+)$/))) {
@@ -189,9 +196,55 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Step through a single line of the loaded program.
 	 */
-	step() : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(`:step\n`);
+	async step() : Promise<StepResultType> {
+		if (!this._programInfo) throw new Error("No program to run");
+
+		//Run the next line
+		let lines : string[]  = await this.execute(`:step`);
+
+		//Get the first line of the output
+		let first: string | undefined = lines.shift();
+		//Shouldn't happen
+		if (!first) throw new Error("Expected output, received nothing");
+
+		//Object to return
+		let result : StepResultType;
+
+		let match;
+		if ((match = first.match(/^read (.+?) = (.+)$/))) {
+			//Got input
+			result = {
+				cause: 'start',
+				variable: match[1],
+				value: parseTree(match[2]),
+			};
+		} else if ((match = first.match(/^wrote (.+?) = (.+)$/))) {
+			//Program finished executing
+			result = {
+				cause: 'done',
+				variable: match[1],
+				value: parseTree(match[2]),
+			};
+		} else if ((match = first.match(/^(.+), line (\d+):/))) {
+			lines.shift();
+			//Stopped after executing the line
+			result = {
+				cause: 'breakpoint',
+				line: Number.parseInt(match[2]),
+				note: lines.shift(),
+			};
+		} else if (first === 'Skipped or exited while-loop.') {
+			result = {
+				cause: 'loop-exit',
+			}
+		} else {
+			throw new Error(`Unexpected output: "${first}"`);
+		}
+
+		//Update the stored variables
+		await this.store();
+
+		return result;
 	}
 
 	/**

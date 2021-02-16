@@ -5,7 +5,7 @@ import { ProgramInfo } from "../src/InteractiveConnector";
 import * as path from "path";
 import { CustomDict } from "../src/types/CustomDict";
 import { to_tree } from "../src/converters/IntegerTreeConverter";
-import { BinaryTree } from "../src/parsers/TreeParser";
+import parseTree, { BinaryTree } from "../src/parsers/TreeParser";
 
 async function setup() : Promise<InteractiveHWhileConnector> {
 	let working_dir = path.resolve('.', "resources");
@@ -344,6 +344,72 @@ describe('Interactive HWhile Connector', function () {
 						cause: 'done',
 						variable: 'SUM',
 						value: to_tree(12),
+					});
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+	});
+
+	describe(`#step(...)`, function () {
+		describe(`no program loaded`, async function () {
+			it('should throw an error', async function () {
+				let connector = await setup();
+				return connector.step()
+					.then(() => { throw new Error('was not supposed to succeed'); })
+					.catch(m => { expect(m).to.match(/.*No program to run.*/); })
+					.finally(async () => teardown(connector));
+			});
+		});
+
+		describe(`run 'count [1,2]' completely`, async function () {
+			it('should produce 3', async function () {
+				let connector = await setup();
+				try {
+					//Load the program
+					await connector.load('add', '[1,2]');
+					//First step reads the input
+					expect(await connector.step()).to.deep.equal({
+						cause: 'start',
+						variable: 'XY',
+						value: parseTree('<<nil.nil>.<<nil.<nil.nil>>.nil>>')
+					});
+					//Step through the program
+					expect(await connector.step()).to.deep.equal({
+						cause: 'breakpoint',
+						line: 6,
+						note: 'X = <nil.nil>',
+					});
+					expect(await connector.step()).to.deep.equal({
+						cause: 'breakpoint',
+						line: 7,
+						note: 'Y = <<nil.<nil.nil>>.nil>'
+					});
+					expect(await connector.step()).to.deep.equal({
+						cause: 'breakpoint',
+						line: 8,
+						note: 'Entered or re-entered while-loop.'
+					});
+					expect(await connector.step()).to.deep.equal({
+						cause: 'breakpoint',
+						line: 9,
+						note: 'Y = <nil.<<nil.<nil.nil>>.nil>>'
+					});
+					expect(await connector.step()).to.deep.equal({
+						cause: 'breakpoint',
+						line: 10,
+						note: 'X = nil'
+					});
+					//Program leaves the loop
+					expect(await connector.step()).to.deep.equal({
+						cause: 'loop-exit',
+					});
+					//Program finishes
+					expect(await connector.step()).to.deep.equal({
+						cause: 'done',
+						variable: 'Y',
+						value: parseTree('<nil.<<nil.<nil.nil>>.nil>>'),
 					});
 				} finally {
 					await teardown(connector);
