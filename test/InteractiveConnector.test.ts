@@ -4,6 +4,8 @@ import { InteractiveHWhileConnector } from "../src";
 import { ProgramInfo } from "../src/InteractiveConnector";
 import * as path from "path";
 import { CustomDict } from "../src/types/CustomDict";
+import { to_tree } from "../src/converters/IntegerTreeConverter";
+import { BinaryTree } from "../src/parsers/TreeParser";
 
 async function setup() : Promise<InteractiveHWhileConnector> {
 	let working_dir = path.resolve('.', "resources");
@@ -212,6 +214,64 @@ describe('Interactive HWhile Connector', function () {
 					await connector.delBreakpoint(v);
 					let actual_removed_2 = await connector.breakpoints();
 					expect(actual_removed_2).to.not.have.key(PROG);
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+	});
+
+	describe(`#store(...)`, function () {
+		describe(`no programs loaded`, async function () {
+			it('should have no variables', async function () {
+				let connector = await setup();
+				try {
+					expect(await connector.store()).to.deep.equal(new Map());
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+
+		describe(`program loaded, not run`, async function () {
+			it('should have no variables', async function () {
+				let connector = await setup();
+				try {
+					await connector.load('count', '[1, 2, 3]');
+					expect(await connector.store()).to.deep.equal(new Map());
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+
+		describe(`count breaking during execution`, async function () {
+			it('should have some variables set', async function () {
+				let connector = await setup();
+				try {
+					//Load a program, and add a breakpoint
+					await connector.load('count', '[1, 2]');
+					await connector.addBreakpoint(8);
+					await connector.run();
+
+					let actual = await connector.store();
+
+					let count_vars : Map<string, BinaryTree> = actual.get('count') || new Map();
+
+					//Make sure the program exists in the result
+					expect(actual).to.have.key('count');
+					//Make sure 'LIST' exists in the result, and has the correct value
+					expect(count_vars.get('LIST')).to.not.be.undefined;
+					expect(count_vars.get('LIST')).to.deep.equal({
+						//TODO: Replace this with `list_to_tree([1,2])`
+						left: to_tree(1),
+						right: {
+							left: to_tree(2),
+							right: null
+						}
+					});
+					//Make sure 'SUM' exists in the result, and has the correct value
+					expect(count_vars.get('SUM')).to.be.null;
 				} finally {
 					await teardown(connector);
 				}

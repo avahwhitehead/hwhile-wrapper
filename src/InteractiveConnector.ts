@@ -54,7 +54,7 @@ export class InteractiveHWhileConnector {
 					//See if there are any callbacks waiting for data
 					let dataCallback: ((data: string[]) => void) | undefined = this._dataCallbacks.shift();
 					//Call the callback with the output data
-					if (dataCallback) dataCallback(this._outputHolder);
+					if (dataCallback) dataCallback(this._outputHolder.filter(s => !!s));
 					//Clear the line store
 					this._outputHolder = []
 				} else {
@@ -139,8 +139,7 @@ export class InteractiveHWhileConnector {
 	 * Run the loaded program up until the next breakpoint.
 	 */
 	async run() : Promise<void> {
-		if (!this._shell) return;
-		this._shell.stdin.write(`:run\n`);
+		await this.execute(':run');
 	}
 
 	/**
@@ -152,14 +151,30 @@ export class InteractiveHWhileConnector {
 	}
 
 	/**
-	 * Print the current store contents.
+	 * Get the current store contents.
+	 * Returns a dictionary of dictionaries, first indexed by program, then by variable.
+	 * Also updates the stored variable values for the loaded program.
+	 * @returns		A mapping of programs to a map of variables to values.
 	 */
-	async store() : Promise<Map<string, BinaryTree>> {
+	async store() : Promise<Map<string, Map<string, BinaryTree>>> {
 		let lines = await this.execute(`:store`);
-		const variables : Map<string, BinaryTree> = new Map<string, BinaryTree>();
+		const variables : Map<string, Map<string, BinaryTree>> = new Map();
 
+		//Get all the lines matching the output format "(prog) VARIABLE = [OUTPUT_VAL]"
 		let matches = this._runMatch(lines,/^\((.+?)\) (.+?) = (.+)$/);
-		for (let match of matches) variables.set(match[2], parseTree(match[3]));
+		for (let match of matches) {
+			//Get the program's variables
+			let p = variables.get(match[1]) || new Map();
+			//Add this variable to the list
+			p.set(match[2], parseTree(match[3]));
+			//Save the updated variables
+			variables.set(match[1], p);
+		}
+
+		//If a program is loaded, update the variable values
+		if (this._programInfo) {
+			this._programInfo.variables = variables.get(this._programInfo.name) || new Map();
+		}
 
 		return variables;
 	}
