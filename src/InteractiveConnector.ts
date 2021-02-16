@@ -1,5 +1,12 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
 import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
+import parseTree, { BinaryTree } from "./parsers/TreeParser";
+
+export interface ProgramInfo {
+	name: string;
+	variables: Map<string, BinaryTree>;
+	breakpoints: number[],
+}
 
 /**
  * Class for controlling HWhile's interactive mode
