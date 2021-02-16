@@ -1,0 +1,12 @@
+// Sourced from: https://github.com/alexj136/HWhile/
+// A simple addition program
+
+add
+read XY {
+    X := hd XY;
+    Y := tl XY;
+    while X {
+        Y := cons nil Y;
+        X := tl X
+    }
+} write Y

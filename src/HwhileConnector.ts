@@ -3,12 +3,17 @@ import { ChildProcessWithoutNullStreams, spawn } from "child_process";
 /**
  * Constructor properties for {@link HWhileConnector}
  */
-interface HWhileConnectorProps {
+export interface HWhileConnectorProps {
 	/**
 	 * Path to the installed hwhile program.
 	 * @example "hwhile"
 	 */
 	hwhile: string,
+	/**
+	 * The directory to run hwhile in.
+	 * Defaults to the current directory.
+ 	 */
+	cwd?: string,
 }
 
 /**
@@ -144,7 +149,9 @@ export class HWhileConnector {
 		if (expr) args.push(expr);
 
 		//Start the process
-		return spawn(this._props.hwhile, args);
+		return spawn(this._props.hwhile, args, {
+			cwd: this._props.cwd,
+		});
 	}
 
 	/**
