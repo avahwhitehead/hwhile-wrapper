@@ -108,19 +108,19 @@ describe('Interactive HWhile Connector', function () {
 		describe(`#breakpoints()`, async function () {
 			it('should add and store multiple breakpoints for multiple programs', async function () {
 				let connector = await setup();
-				//The breakpoints to add for different programs
-				let expected : CustomDict<number[]> = {
-					'prog1': [5,3,1],
-					'prog2': [2,4,6],
-				};
-				//Add all the breakpoints
-				for (let [prog, breakpoints] of Object.entries(expected)) {
-					for (let b of breakpoints) {
-						await connector.addBreakpoint(b, prog);
-					}
-				}
-
 				try {
+					//The breakpoints to add for different programs
+					let expected : CustomDict<number[]> = {
+						'prog1': [5,3,1],
+						'prog2': [2,4,6],
+					};
+					//Add all the breakpoints
+					for (let [prog, breakpoints] of Object.entries(expected)) {
+						for (let b of breakpoints) {
+							await connector.addBreakpoint(b, prog);
+						}
+					}
+
 					let actual = await connector.breakpoints();
 					//Check all the programs (and only these programs) exist
 					expect(actual).to.have.all.keys(Object.keys(expected));
@@ -139,18 +139,18 @@ describe('Interactive HWhile Connector', function () {
 			it('should add and store multiple breakpoints for a single loaded program', async function () {
 				let connector = await setup();
 
-				//Load the program
-				let PROG = 'count';
-				await connector.load(PROG, '[1,2,3]');
-
-				//The breakpoints to add
-				let expected : number[] = [5,3,1];
-				//Add all the breakpoints
-				for (let b of expected) {
-					await connector.addBreakpoint(b);
-				}
-
 				try {
+					//Load the program
+					let PROG = 'count';
+					await connector.load(PROG, '[1,2,3]');
+
+					//The breakpoints to add
+					let expected : number[] = [5,3,1];
+					//Add all the breakpoints
+					for (let b of expected) {
+						await connector.addBreakpoint(b);
+					}
+
 					let actual = await connector.breakpoints();
 					//Check all the programs (and only these programs) exist
 					expect(actual).to.have.key(PROG);
