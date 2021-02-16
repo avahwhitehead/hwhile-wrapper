@@ -85,6 +85,7 @@ export class InteractiveHWhileConnector {
 
 	/**
 	 * Evaluate a while expression or run a command.
+	 * USE WITH CAUTION.
 	 * @param expr	String to evaluate
 	 * @returns	The string outputted by hwhile to stdout while running, split into lines
 	 */
@@ -136,10 +137,53 @@ export class InteractiveHWhileConnector {
 	}
 
 	/**
-	 * Run the loaded program up until the next breakpoint.
+	 * Run the loaded program up until the next breakpoint, or the end of the program (whichever is first).
 	 */
-	async run() : Promise<void> {
-		await this.execute(':run');
+	async run() : Promise<{ cause: 'breakpoint'; line: number; } | { cause: 'done'; variable: string; value: BinaryTree }> {
+		if (!this._programInfo) throw new Error("No program to run");
+
+		//Run the program
+		let lines: string[] = await this.execute(':run');
+
+		//Get the first line of the output
+		let first: string | undefined = lines.shift();
+		//Shouldn't happen
+		if (!first) throw new Error("Expected output, received nothing");
+
+		//Object to return
+		let result : { cause: 'breakpoint'; line: number; } | { cause: 'done'; variable: string; value: BinaryTree };
+
+		let match;
+		if ((match = first.match(/^wrote (.+?) = (.+)$/))) {
+			//Program executed completely
+			result = {
+				cause: 'done',
+				variable: match[1],
+				value: parseTree(match[2]),
+			};
+		} else if (first === 'Hit breakpoint.') {
+			//Program stopped at breakpoint
+			let line = lines.shift();
+			//Shouldn't ever happen
+			if (!line) throw new Error('Unexpected end to output');
+
+			//Get the program name/line number from the output
+			let match = line.match(/^(.+), line (\d+):/);
+			//Shouldn't ever happen
+			if (!match) throw new Error(`Unexpected output: "${line}"`);
+			//Stopped on a breakpoint
+			result = {
+				cause: 'breakpoint',
+				line: Number.parseInt(match[2]),
+			};
+		} else {
+			throw new Error(`Unexpected output: "${first}"`);
+		}
+
+		//Update the stored variables
+		await this.store();
+
+		return result;
 	}
 
 	/**

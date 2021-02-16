@@ -278,4 +278,77 @@ describe('Interactive HWhile Connector', function () {
 			});
 		});
 	});
+
+	describe(`#run(...)`, function () {
+		describe(`no program loaded`, async function () {
+			it('should throw an error', async function () {
+				let connector = await setup();
+				return connector.run()
+					.then(() => { throw new Error('was not supposed to succeed'); })
+					.catch(m => { expect(m).to.match(/.*No program to run.*/); })
+					.finally(async () => teardown(connector));
+			});
+		});
+
+		describe(`run 'count [3,4,5]' completely`, async function () {
+			it('should produce 12', async function () {
+				let connector = await setup();
+				try {
+					//Load the program
+					await connector.load('count', '[3,4,5]');
+					//Validate the result
+					expect(await connector.run()).to.deep.equal({
+						cause: 'done',
+						variable: 'SUM',
+						value: to_tree(12),
+					});
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+
+		describe(`run 'count [3,4,5]' stopping at breakpoints`, async function () {
+			it('should stop at each breakpoint, then produce 12', async function () {
+				let connector = await setup();
+				try {
+					//Load the program
+					await connector.load('count', '[3,4,5]');
+
+					//Break on a line that's only executed once
+					await connector.addBreakpoint(7, 'count');
+					expect(await connector.run()).to.deep.equal({
+						cause: 'breakpoint',
+						line: 7,
+					});
+
+					//Break on a line that's executed repeatedly
+					const BREAK_LINE = 10;
+					await connector.addBreakpoint(BREAK_LINE, 'count');
+					//Validate the result
+					expect(await connector.run()).to.deep.equal({
+						cause: 'breakpoint',
+						line: BREAK_LINE,
+					});
+					expect(await connector.run()).to.deep.equal({
+						cause: 'breakpoint',
+						line: BREAK_LINE,
+					});
+					expect(await connector.run()).to.deep.equal({
+						cause: 'breakpoint',
+						line: BREAK_LINE,
+					});
+
+					//Run to completion
+					expect(await connector.run()).to.deep.equal({
+						cause: 'done',
+						variable: 'SUM',
+						value: to_tree(12),
+					});
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
+	});
 });
