@@ -126,7 +126,9 @@ export class InteractiveHWhileConnector {
 				variables: new Map<string, BinaryTree>(),
 				breakpoints: [],
 			};
-			//TODO: Check for breakpoints
+			// Check for existing breakpoints
+			let breakpoints: CustomDict<Set<number>> = await this.breakpoints();
+			if (breakpoints[p]) this._programInfo.breakpoints = Array.from(breakpoints[p]);
 			return this._programInfo;
 		} else {
 			throw new Error(`Unexpected output: "${result}"`);

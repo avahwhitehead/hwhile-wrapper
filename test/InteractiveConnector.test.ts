@@ -102,6 +102,23 @@ describe('Interactive HWhile Connector', function () {
 					.finally(async () => teardown(connector));
 			});
 		});
+
+		describe(`#load('count', '[4, 5]') - with breakpoints`, function () {
+			it('should load the `count` program with breakpoints already defined', async function () {
+				let connector = await setup();
+				try {
+					let breakpoints = [1,2,3,4,5];
+					for (let b of breakpoints) await connector.addBreakpoint(b, 'count');
+
+					let programInfo: ProgramInfo = await connector.load('count', '[4, 5]');
+					expect(programInfo.name).to.eql('count');
+					expect(programInfo.variables).to.eql(new Map());
+					expect(programInfo.breakpoints).to.have.same.members(breakpoints);
+				} finally {
+					await teardown(connector);
+				}
+			});
+		});
 	});
 
 	describe(`#breakpoints(...)`, function () {
