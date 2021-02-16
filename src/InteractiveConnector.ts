@@ -281,9 +281,8 @@ export class InteractiveHWhileConnector {
 	 * @param dir	The directory to switch to.
 	 * 				This must be an absolute path.
 	 */
-	cd(dir: string) : void {
-		if (!this._shell) return;
-		this._shell.stdin.write(`:cd ${dir}\n`);
+	async cd(dir: string) : Promise<void> {
+		await this.execute(`:cd ${dir}`);
 	}
 
 	/**
