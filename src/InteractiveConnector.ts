@@ -2,6 +2,7 @@ import { ChildProcessWithoutNullStreams } from "child_process";
 import { CustomDict } from "./types/CustomDict";
 import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
 import parseTree, { BinaryTree } from "./parsers/TreeParser";
+import { EventEmitter } from "events";
 
 export interface ProgramInfo {
 	name: string;
@@ -19,11 +20,11 @@ export type RunResultType = { cause: 'breakpoint'; line: number; }
 /**
  * Class for controlling HWhile's interactive mode
  */
-export class InteractiveHWhileConnector {
+export class InteractiveHWhileConnector extends EventEmitter {
 	private _hWhileConnector: HWhileConnector;
 	private _shell: ChildProcessWithoutNullStreams | undefined;
 	//Callback queue for when HWhile finishes outputting
-	private readonly _dataCallbacks: ((lines: string[]) => void)[] = [];
+	private readonly _dataCallbacks: ((lines: string[], original: string) => void)[] = [];
 	//Store the outputted lines across multiple 'data' events until an input prompt is detected
 	private _outputHolder : string[] = [];
 	//Program information store
@@ -31,18 +32,15 @@ export class InteractiveHWhileConnector {
 
 	//TODO: Queue commands for execution rather than sending immediately
 
-	//TODO: Add an `InteractiveHWhileConnector.on("output")` in place of `... ._shell.stdout.on("data")`
-	//	Would allow filtering out unnecessary info
-	//	Would allow showing inputs on stdout
-
 	constructor(props: HWhileConnectorProps) {
+		super();
 		this._hWhileConnector = new HWhileConnector(props);
 	}
 
 	/**
 	 * Start a HWhile interactive process
  	 */
-	public async start() : Promise<ChildProcessWithoutNullStreams> {
+	public async start() : Promise<void> {
 		this._shell = this._hWhileConnector.interactive();
 
 		//Listen for output from HWhile
@@ -59,9 +57,9 @@ export class InteractiveHWhileConnector {
 				//If the last line is prompting for input
 				if (last.match(/^HWhile>\s*$/)) {
 					//See if there are any callbacks waiting for data
-					let dataCallback: ((data: string[]) => void) | undefined = this._dataCallbacks.shift();
+					let dataCallback: ((data: string[], original: string) => void) | undefined = this._dataCallbacks.shift();
 					//Call the callback with the output data
-					if (dataCallback) dataCallback(this._outputHolder.filter(s => !!s));
+					if (dataCallback) dataCallback(this._outputHolder.filter(s => !!s), str);
 					//Clear the line store
 					this._outputHolder = []
 				} else {
@@ -71,10 +69,9 @@ export class InteractiveHWhileConnector {
 			}
 		});
 
-		//Don't return the connector until the first input prompt has been received
-		let shell: ChildProcessWithoutNullStreams = this._shell;
-		return new Promise((resolve) => {
-			this._dataCallbacks.push(() => resolve(shell));
+		//Don't return until the first input prompt has been received
+		return new Promise<void>((resolve) => {
+			this._dataCallbacks.push(() => resolve());
 		});
 	}
 
@@ -86,6 +83,13 @@ export class InteractiveHWhileConnector {
 		this._shell.kill();
 	}
 
+	/**
+	 *
+	 */
+	get shell(): ChildProcessWithoutNullStreams | undefined {
+		return this._shell;
+	}
+
 	// ========
 	// Inputs
 	// ========
@@ -93,10 +97,11 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Evaluate a while expression or run a command.
 	 * USE WITH CAUTION.
-	 * @param expr	String to evaluate
+	 * @param expr		String to evaluate
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 * @returns	The string outputted by hwhile to stdout while running, split into lines
 	 */
-	async execute(expr: string): Promise<string[]> {
+	async execute(expr: string, output = true): Promise<string[]> {
 		return new Promise((resolve, reject) => {
 			if (!this._shell) {
 				reject("No shell to access. Try calling `this.start()`.");
@@ -104,16 +109,20 @@ export class InteractiveHWhileConnector {
 			}
 			if (expr.charAt(expr.length - 1) !== '\n') expr += '\n';
 
-			this._dataCallbacks.push((data: string[]) => resolve(data));
+			this._dataCallbacks.push((data: string[], str: string) => {
+				if (output) this.emit('output', str);
+				resolve(data)
+			});
 			this._shell.stdin.write(expr);
 		})
 	}
 
 	/**
 	 * Print the help message.
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async help() : Promise<void> {
-		await this.execute(':help');
+	async help(output = true) : Promise<void> {
+		await this.execute(':help', output);
 	}
 
 	/**
@@ -121,11 +130,12 @@ export class InteractiveHWhileConnector {
 	 * Note that this clears the current store contents.
 	 * @param p		The program to load.
 	 * 				For a program 'p', this will load from the file 'p.while' in the current directory.
-	 * @param expr	Argument to provide to the program {@code p}.
+	 * @param expr	Argument to provide to the program {@code p}..
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async load(p : string, expr : string) : Promise<ProgramInfo> {
+	async load(p : string, expr : string, output = true) : Promise<ProgramInfo> {
 		//Run the command
-		let lines : string[] = await this.execute(`:load ${p} ${expr}`);
+		let lines : string[] = await this.execute(`:load ${p} ${expr}`, output);
 		let result = lines.shift();
 
 		if (result && result.match(/^Program '(.+)' loaded/)) {
@@ -144,13 +154,14 @@ export class InteractiveHWhileConnector {
 	}
 
 	/**
-	 * Run the loaded program up until the next breakpoint, or the end of the program (whichever is first).
+	 * Run the loaded program up until the next breakpoint, or the end of the program (whichever is first)..
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async run() : Promise<RunResultType> {
+	async run(output = true) : Promise<RunResultType> {
 		if (!this._programInfo) throw new Error("No program to run");
 
 		//Run the program
-		let lines: string[] = await this.execute(':run');
+		let lines: string[] = await this.execute(':run', output);
 
 		//Get the first line of the output
 		let first: string | undefined = lines.shift();
@@ -188,19 +199,20 @@ export class InteractiveHWhileConnector {
 		}
 
 		//Update the stored variables
-		await this.store();
+		await this.store(false);
 
 		return result;
 	}
 
 	/**
-	 * Step through a single line of the loaded program.
+	 * Step through a single line of the loaded program..
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async step() : Promise<StepResultType> {
+	async step(output = true) : Promise<StepResultType> {
 		if (!this._programInfo) throw new Error("No program to run");
 
 		//Run the next line
-		let lines : string[]  = await this.execute(`:step`);
+		let lines : string[]  = await this.execute(`:step`, output);
 
 		//Get the first line of the output
 		let first: string | undefined = lines.shift();
@@ -242,7 +254,7 @@ export class InteractiveHWhileConnector {
 		}
 
 		//Update the stored variables
-		await this.store();
+		await this.store(false);
 
 		return result;
 	}
@@ -251,10 +263,11 @@ export class InteractiveHWhileConnector {
 	 * Get the current store contents.
 	 * Returns a dictionary of dictionaries, first indexed by program, then by variable.
 	 * Also updates the stored variable values for the loaded program.
-	 * @returns		A mapping of programs to a map of variables to values.
+	 * @param output	Whether to emit the HWhile output string to listeners
+	 * @returns		A mapping of programs to a map of variables to values..
 	 */
-	async store() : Promise<Map<string, Map<string, BinaryTree>>> {
-		let lines = await this.execute(`:store`);
+	async store(output = true) : Promise<Map<string, Map<string, BinaryTree>>> {
+		let lines = await this.execute(`:store`, output);
 		const variables : Map<string, Map<string, BinaryTree>> = new Map();
 
 		//Get all the lines matching the output format "(prog) VARIABLE = [OUTPUT_VAL]"
@@ -278,18 +291,19 @@ export class InteractiveHWhileConnector {
 
 	/**
 	 * Change the current file search path to 'dir'.
-	 * @param dir	The directory to switch to.
-	 * 				This must be an absolute path.
+	 * @param dir		The directory to switch to.
+	 * 					This must be an absolute path..
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async cd(dir: string) : Promise<void> {
-		await this.execute(`:cd ${dir}`);
+	async cd(dir: string, output = true) : Promise<void> {
+		await this.execute(`:cd ${dir}`, output);
 	}
 
 	/**
 	 * Get all the breakpoints.
 	 */
-	async breakpoints() : Promise<CustomDict<Set<number>>> {
-		let lines = await this.execute(`:break`);
+	async breakpoints(output = true) : Promise<CustomDict<Set<number>>> {
+		let lines = await this.execute(`:break`, output);
 		let matches = this._runMatch(lines, /^Program '(.+)', line (\d+)\.$/);
 		let breakpoints: CustomDict<Set<number>> = {};
 		for (let match of matches) {
@@ -304,13 +318,14 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Add a breakpoint on line 'n' of the program 'p', or the loaded program if `p` is not provided.
 	 * @param n	Line number to add the break point
-	 * @param p	Optional program to add the breakpoint to
+	 * @param p	Optional program to add the breakpoint to.
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async addBreakpoint(n: number, p?: string) : Promise<void> {
+	async addBreakpoint(n: number, p?: string, output = true) : Promise<void> {
 		//Error if HWhile won't be able to set the breakpoint
 		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
 
-		let lines: string[] = await this.execute(`:break ${n} ${p || ''}`);
+		let lines: string[] = await this.execute(`:break ${n} ${p || ''}`, output);
 		let last = lines.shift();
 		if (!last || !last.match(/^Breakpoint set in program .+ at line \d+\.$/)) {
 			throw new Error(`Unexpected output: "${last}"`);
@@ -320,13 +335,14 @@ export class InteractiveHWhileConnector {
 	/**
 	 * Delete the breakpoint on line 'n' of the program 'p', or the loaded program if `p` is not provided.
 	 * @param n	Line number to remove the break point
-	 * @param p	Optional program to remove the breakpoint from
+	 * @param p	Optional program to remove the breakpoint from.
+	 * @param output	Whether to emit the HWhile output string to listeners
 	 */
-	async delBreakpoint(n: number, p?: string) : Promise<void> {
+	async delBreakpoint(n: number, p?: string, output = true) : Promise<void> {
 		//Error if HWhile won't be able to clear the breakpoint
 		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
 
-		let lines: string[] = await this.execute(`:delbreak ${n} ${p || ''}`);
+		let lines: string[] = await this.execute(`:delbreak ${n} ${p || ''}`, output);
 		let last = lines.shift();
 		if (!last || !last.match(/^Breakpoint removed from program .+ at line \d+\.$/)) {
 			throw new Error(`Unexpected output: "${last}"`);
