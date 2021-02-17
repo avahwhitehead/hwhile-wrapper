@@ -7,7 +7,8 @@
   "scripts": {
     "build": "tsc",
     "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'",
-    "test-specific": "mocha -r chai -r esm -r ts-node/register"
+    "test-specific": "mocha -r chai -r esm -r ts-node/register",
+    "release": "standard-version"
   },
   "keywords": [],
   "author": "Alaric Whitehead",
@@ -24,6 +25,7 @@
     "eslint": "^6.7.2",
     "esm": "^3.2.25",
     "mocha": "^8.2.1",
+    "standard-version": "^9.1.0",
     "ts-node": "^9.1.1",
     "typescript": "^4.1.5"
   }
