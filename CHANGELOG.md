@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.2.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.1.0...v1.2.0) (2021-02-17)
+
+
+### Features
+
+* removed scope from package name ([2cd87a8](https://github.com/sonrad10/hwhile-wrapper/commit/2cd87a810e74d18b1b4c5cc3b9fabc23b155b0fa))
+
 ## 1.1.0 (2021-02-17)
 
 
