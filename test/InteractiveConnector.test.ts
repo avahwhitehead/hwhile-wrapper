@@ -6,6 +6,7 @@ import * as path from "path";
 import { CustomDict } from "../src/types/CustomDict";
 import { to_tree } from "../src/converters/IntegerTreeConverter";
 import parseTree, { BinaryTree } from "../src/parsers/TreeParser";
+import { list_to_tree } from "../src/converters/NumberListConverter";
 
 async function setup() : Promise<InteractiveHWhileConnector> {
 	let working_dir = path.resolve('.', "resources");
@@ -262,14 +263,7 @@ describe('Interactive HWhile Connector', function () {
 					expect(actual).to.have.key('count');
 					//Make sure 'LIST' exists in the result, and has the correct value
 					expect(count_vars.get('LIST')).to.not.be.undefined;
-					expect(count_vars.get('LIST')).to.deep.equal({
-						//TODO: Replace this with `list_to_tree([1,2])`
-						left: to_tree(1),
-						right: {
-							left: to_tree(2),
-							right: null
-						}
-					});
+					expect(count_vars.get('LIST')).to.deep.equal(list_to_tree([1, 2]));
 					//Make sure 'SUM' exists in the result, and has the correct value
 					expect(count_vars.get('SUM')).to.be.null;
 				} finally {
