@@ -8,6 +8,7 @@ Alaric Whitehead <aw548@sussex.ac.uk>, Supervisor: Dr Bernhard Reus <bernhard@su
 :wiki: ./wiki
 //URL aliases:
 :chai: https://www.npmjs.com/package/chai
+:conventionalcommits: https://www.conventionalcommits.org/en/v1.0.0/
 :electron: https://www.electronjs.org/
 :git: https://git-scm.com/
 :github-ssh: https://github.blog/2020-12-15-token-authentication-requirements-for-git-operations/
@@ -154,6 +155,14 @@ stack install --resolver=lts-8.0 hwhile
 Using the default resolver causes dependency issues, which are not present with this version.
 
 NOTE: Stack's installed programs are removed from the path when you log out. If you get a command not found error, simply run this command again.
+
+== Contributing
+
+This repository uses `standard-version` to maintain the version number. As such, commits should follow the link:{conventionalcommits}[Conventional Commits] specification.
+
+Any changes should be opened in their own branch, then merged into `master` through a pull request.
+
+Once a branch is merged into master, `npm run release` should be used to update the version number and changelog.
 
 [#subsect:license]
 == License
