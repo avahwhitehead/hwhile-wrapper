@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.3.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.2.1...v1.3.0) (2021-02-18)
+
+
+### Features
+
+* renamed package to have whide scope ([35bb87c](https://github.com/sonrad10/hwhile-wrapper/commit/35bb87c7e91825a8fa8181fb3668477fe0fa599a))
+
 ### [1.2.1](https://github.com/sonrad10/hwhile-wrapper/compare/v1.2.0...v1.2.1) (2021-02-17)
 
 ## [1.2.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.1.0...v1.2.0) (2021-02-17)
