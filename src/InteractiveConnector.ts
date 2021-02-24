@@ -145,7 +145,7 @@ export class InteractiveHWhileConnector extends EventEmitter {
 				breakpoints: [],
 			};
 			// Check for existing breakpoints
-			let breakpoints: CustomDict<Set<number>> = await this.breakpoints();
+			let breakpoints: CustomDict<Set<number>> = await this.breakpoints(output);
 			if (breakpoints[p]) this._programInfo.breakpoints = Array.from(breakpoints[p]);
 			return this._programInfo;
 		} else {
