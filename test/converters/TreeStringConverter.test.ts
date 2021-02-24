@@ -1,10 +1,14 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
+import {
+	parseTree,
+	BinaryTree,
+	IntegerTreeConverter,
+	NumberListConverter,
+	TreeStringConverter,
+} from "../../src";
 
-import { tree_to_string } from "../../src/converters/TreeStringConverter";
-import { to_tree } from "../../src/converters/IntegerTreeConverter";
-import { list_to_tree } from "../../src/converters/NumberListConverter";
-import parseTree, { BinaryTree } from "../../src/parsers/TreeParser";
+const tree_to_string = TreeStringConverter.tree_to_string;
 
 describe('TreeStringConverter', function () {
 	function tree(left: BinaryTree, right: BinaryTree) {
@@ -33,7 +37,7 @@ describe('TreeStringConverter', function () {
 	describe(`Parser tests`, function () {
 		describe(`#treeToString(7)`, function () {
 			it('should produce the tree of `7`', function () {
-				const expected: BinaryTree = to_tree(7);
+				const expected: BinaryTree = IntegerTreeConverter.to_tree(7);
 				expect(
 					parseTree(tree_to_string(expected))
 				).to.eql(expected);
@@ -42,7 +46,7 @@ describe('TreeStringConverter', function () {
 
 		describe(`#treeToString([4,5])`, function () {
 			it('should produce the tree of `[4,5]`', function () {
-				const expected: BinaryTree = list_to_tree([4,5])
+				const expected: BinaryTree = NumberListConverter.list_to_tree([4,5])
 				expect(
 					parseTree(tree_to_string(expected))
 				).to.eql(expected);

@@ -1,6 +1,6 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import parseTree, { BinaryTree } from "../../src/parsers/TreeParser";
+import { parseTree, BinaryTree } from "../../src/";
 
 describe('TreeParser (valid)', function () {
 	describe(`#parseTree('')`, function () {

@@ -1,6 +1,9 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { to_integer, to_tree } from "../../src/converters/IntegerTreeConverter";
+import { IntegerTreeConverter } from "../../src/";
+
+const to_tree = IntegerTreeConverter.to_tree;
+const to_integer = IntegerTreeConverter.to_integer;
 
 describe('IntegerTreeConverter', function () {
 	describe('#to_integer(null)', function () {

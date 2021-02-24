@@ -1,8 +1,9 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import * as IntegerConverter from "../../src/converters/IntegerTreeConverter";
-import { tree_to_list, list_to_tree } from "../../src/converters/TreeListConverter";
-import { BinaryTree } from "../../src/parsers/TreeParser";
+import { BinaryTree, IntegerTreeConverter as IntegerConverter, TreeListConverter } from "../../src";
+
+const tree_to_list = TreeListConverter.tree_to_list;
+const list_to_tree = TreeListConverter.list_to_tree;
 
 describe('TreeListConverter', function () {
 	function tree(left: BinaryTree, right: BinaryTree) {

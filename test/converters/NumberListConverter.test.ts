@@ -1,8 +1,9 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
-import { list_to_tree, tree_to_list } from "../../src/converters/NumberListConverter";
-import { BinaryTree } from "../../src/parsers/TreeParser";
-import { to_tree } from "../../src/converters/IntegerTreeConverter";
+import { BinaryTree, NumberListConverter, IntegerTreeConverter } from "../../src/";
+
+const list_to_tree = NumberListConverter.list_to_tree;
+const tree_to_list = NumberListConverter.tree_to_list;
 
 describe('TreeListConverter', function () {
 	function tree(left: BinaryTree, right: BinaryTree) {
@@ -24,7 +25,7 @@ describe('TreeListConverter', function () {
 		describe('<10.n>', function () {
 			it('should produce the list [10]', function () {
 				expect(tree_to_list(
-					tree(to_tree(10), null)
+					tree(IntegerTreeConverter.to_tree(10), null)
 				)).to.deep.equal([10]);
 			});
 		});
@@ -44,7 +45,7 @@ describe('TreeListConverter', function () {
 		describe('[10]', function () {
 			it('should produce the list <10.n>', function () {
 				expect(list_to_tree([10]))
-					.to.deep.equal(tree(to_tree(10), null));
+					.to.deep.equal(tree(IntegerTreeConverter.to_tree(10), null));
 			});
 		});
 	});
