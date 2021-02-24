@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.4.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.3.0...v1.4.0) (2021-02-24)
+
+
+### Features
+
+* added a converter from `BinaryTree`s to strings ([be103a1](https://github.com/sonrad10/hwhile-wrapper/commit/be103a1a60bb3b813875b8f669b47aaa0d4ef74f))
+* made all public interfaces exported ([e62a229](https://github.com/sonrad10/hwhile-wrapper/commit/e62a229e73a462f872ce24d7d277aab54332f7ec))
+
+
+### Bug Fixes
+
+* interactive version no longer displays breakpoints on `load` with output=false ([79cc26c](https://github.com/sonrad10/hwhile-wrapper/commit/79cc26c01518498d7e69b2d7e01219f2aad4ea60))
+
 ## [1.3.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.2.1...v1.3.0) (2021-02-18)
 
 
