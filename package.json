@@ -1,6 +1,6 @@
 {
   "name": "@whide/hwhile-wrapper",
-  "version": "1.5.0",
+  "version": "1.5.1",
   "description": "A Node.js interface to the HWhile interpreter",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",

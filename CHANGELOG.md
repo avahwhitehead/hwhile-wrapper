@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.1](https://github.com/sonrad10/hwhile-wrapper/compare/v1.5.0...v1.5.1) (2021-03-19)
+
+
+### Bug Fixes
+
+* added missing config file ([851dc2c](https://github.com/sonrad10/hwhile-wrapper/commit/851dc2c1013be550e6baa71753c8783b72690e05))
+
 ## [1.5.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.4.0...v1.5.0) (2021-03-19)
 
 
