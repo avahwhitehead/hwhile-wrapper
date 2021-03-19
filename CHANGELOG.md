@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.5.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.4.0...v1.5.0) (2021-03-19)
+
+
+### Features
+
+* changed to publishing only compiled typescript code on npm ([fe49f74](https://github.com/sonrad10/hwhile-wrapper/commit/fe49f74bba6f11a24b5fac3087c6fb38764a9af3))
+
 ## [1.4.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.3.0...v1.4.0) (2021-02-24)
 
 

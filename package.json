@@ -1,10 +1,12 @@
 {
   "name": "@whide/hwhile-wrapper",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "description": "A Node.js interface to the HWhile interpreter",
   "main": "lib/cjs/index.js",
   "module": "lib/esm/index.js",
-  "files": ["lib/"],
+  "files": [
+    "lib/"
+  ],
   "scripts": {
     "tsc": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
     "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'",
