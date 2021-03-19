@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.5.3](https://github.com/sonrad10/hwhile-wrapper/compare/v1.5.2...v1.5.3) (2021-03-19)
+
+
+### Bug Fixes
+
+* fixed import type error when importing as a module in other projects ([82871d2](https://github.com/sonrad10/hwhile-wrapper/commit/82871d2821fb39856ff56cdc8a0f404ddd5afbc3))
+
 ### [1.5.2](https://github.com/sonrad10/hwhile-wrapper/compare/v1.5.1...v1.5.2) (2021-03-19)
 
 
