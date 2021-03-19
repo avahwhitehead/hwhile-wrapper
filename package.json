@@ -2,13 +2,15 @@
   "name": "@whide/hwhile-wrapper",
   "version": "1.4.0",
   "description": "A Node.js interface to the HWhile interpreter",
-  "main": "src/index.ts",
-  "type": "module",
+  "main": "lib/cjs/index.js",
+  "module": "lib/esm/index.js",
+  "files": ["lib/"],
   "scripts": {
-    "build": "tsc",
+    "tsc": "tsc -p tsconfig.json && tsc -p tsconfig-cjs.json",
     "test": "mocha -r chai -r esm -r ts-node/register 'test/**/*.[jt]s'",
     "test-specific": "mocha -r chai -r esm -r ts-node/register",
-    "release": "standard-version"
+    "release": "standard-version",
+    "prepublish": "npm run tsc"
   },
   "keywords": [],
   "author": "Alaric Whitehead",

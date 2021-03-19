@@ -3,8 +3,9 @@
     "target": "es5",
     "module": "ESNext",
     "declaration": true,
+    "esModuleInterop": true,
     "moduleResolution": "Node",
-    "outDir": "./out",
+    "outDir": "./lib/esm",
     "strict": true,
     "types": [
       "node"
