@@ -57,7 +57,7 @@ describe('Interactive HWhile Connector', function () {
 			try {
 				let lines = await connector.execute(':help');
 				lines = lines.map(l => l.trim());
-				expect(lines).to.eql(HELP_MESSAGE);
+				expect(lines).to.eql([':help', ...HELP_MESSAGE]);
 			} finally {
 				await teardown(connector);
 			}

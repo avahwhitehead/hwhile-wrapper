@@ -107,13 +107,15 @@ export class InteractiveHWhileConnector extends EventEmitter {
 				reject("No shell to access. Try calling `this.start()`.");
 				return;
 			}
-			if (expr.charAt(expr.length - 1) !== '\n') expr += '\n';
+			expr = expr.trim();
 
 			this._dataCallbacks.push((data: string[], str: string) => {
 				if (output) this.emit('output', str);
 				resolve(data)
 			});
-			this._shell.stdin.write(expr);
+			//Write the command to the output
+			this._outputHolder.push(expr);
+			this._shell.stdin.write(expr + '\n');
 		})
 	}
 
@@ -136,6 +138,8 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	async load(p : string, expr : string, output = true) : Promise<ProgramInfo> {
 		//Run the command
 		let lines : string[] = await this.execute(`:load ${p} ${expr}`, output);
+		//Remove the command string
+		lines.shift();
 		let result = lines.shift();
 
 		if (result && result.match(/^Program '(.+)' loaded/)) {
@@ -162,6 +166,9 @@ export class InteractiveHWhileConnector extends EventEmitter {
 
 		//Run the program
 		let lines: string[] = await this.execute(':run', output);
+
+		//Remove the command string
+		lines.shift();
 
 		//Get the first line of the output
 		let first: string | undefined = lines.shift();
@@ -213,6 +220,9 @@ export class InteractiveHWhileConnector extends EventEmitter {
 
 		//Run the next line
 		let lines : string[]  = await this.execute(`:step`, output);
+
+		//Remove the command string
+		lines.shift();
 
 		//Get the first line of the output
 		let first: string | undefined = lines.shift();
@@ -326,6 +336,8 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
 
 		let lines: string[] = await this.execute(`:break ${n} ${p || ''}`, output);
+		//Remove the command string
+		lines.shift();
 		let last = lines.shift();
 		if (!last || !last.match(/^Breakpoint set in program .+ at line \d+\.$/)) {
 			throw new Error(`Unexpected output: "${last}"`);
@@ -343,6 +355,8 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
 
 		let lines: string[] = await this.execute(`:delbreak ${n} ${p || ''}`, output);
+		//Remove the command string
+		lines.shift();
 		let last = lines.shift();
 		if (!last || !last.match(/^Breakpoint removed from program .+ at line \d+\.$/)) {
 			throw new Error(`Unexpected output: "${last}"`);
