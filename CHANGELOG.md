@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### [1.6.2](https://github.com/sonrad10/hwhile-wrapper/compare/v1.6.1...v1.6.2) (2021-04-10)
+
+
+### Bug Fixes
+
+* added missing line break ([924ff8b](https://github.com/sonrad10/hwhile-wrapper/commit/924ff8b651a3fb5107a347ed864b508cc844c414))
+
 ### [1.6.1](https://github.com/sonrad10/hwhile-wrapper/compare/v1.6.0...v1.6.1) (2021-04-10)
 
 
