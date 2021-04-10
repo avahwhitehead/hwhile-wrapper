@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.6.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.5.3...v1.6.0) (2021-04-10)
+
+
+### Features
+
+* hwhile commands are shown in the output ([29a13ad](https://github.com/sonrad10/hwhile-wrapper/commit/29a13adbc905e14e776216ba67e96b446ef5dc20))
+
 ### [1.5.3](https://github.com/sonrad10/hwhile-wrapper/compare/v1.5.2...v1.5.3) (2021-03-19)
 
 
