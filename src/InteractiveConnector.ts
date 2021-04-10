@@ -115,7 +115,7 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			});
 			//Write the command to the output
 			this._outputHolder.push(expr);
-			this.emit('output', expr);
+			this.emit('output', expr + '\n');
 			this._shell.stdin.write(expr + '\n');
 		})
 	}
