@@ -2,14 +2,29 @@ import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as path from "path";
 import { CustomDict } from "../src/types/CustomDict";
-import {
-	BinaryTree,
-	IntegerTreeConverter,
-	InteractiveHWhileConnector,
-	NumberListConverter,
-	parseTree,
-	ProgramInfo
-} from "../src";
+import { InteractiveHWhileConnector, ProgramInfo } from "../src";
+import { BinaryTree, treeParser } from "@whide/tree-lang";
+
+/**
+ * Convert a number to a tree
+ * @param n	The number to convert
+ */
+export function tn(n: number) : BinaryTree {
+	if (n === 0) return null;
+	return t(null, tn(n-1));
+}
+
+/**
+ * Shorthand function for building a tree
+ * @param l	The left-hand child
+ * @param r	The right-hand child
+ */
+export function t(l: BinaryTree|number, r: BinaryTree|number): BinaryTree {
+	return {
+		left: (typeof l === 'number' ? tn(l) : l),
+		right: (typeof r === 'number' ? tn(r) : r),
+	};
+}
 
 async function setup() : Promise<InteractiveHWhileConnector> {
 	let working_dir = path.resolve('.', "resources");
@@ -266,7 +281,7 @@ describe('Interactive HWhile Connector', function () {
 					expect(actual).to.have.key('count');
 					//Make sure 'LIST' exists in the result, and has the correct value
 					expect(count_vars.get('LIST')).to.not.be.undefined;
-					expect(count_vars.get('LIST')).to.deep.equal(NumberListConverter.list_to_tree([1, 2]));
+					expect(count_vars.get('LIST')).to.deep.equal(t(tn(1), t(tn(2), null)));
 					//Make sure 'SUM' exists in the result, and has the correct value
 					expect(count_vars.get('SUM')).to.be.null;
 				} finally {
@@ -297,7 +312,7 @@ describe('Interactive HWhile Connector', function () {
 					expect(await connector.run()).to.deep.equal({
 						cause: 'done',
 						variable: 'SUM',
-						value: IntegerTreeConverter.to_tree(12),
+						value: tn(12),
 					});
 				} finally {
 					await teardown(connector);
@@ -340,7 +355,7 @@ describe('Interactive HWhile Connector', function () {
 					expect(await connector.run()).to.deep.equal({
 						cause: 'done',
 						variable: 'SUM',
-						value: IntegerTreeConverter.to_tree(12),
+						value: tn(12),
 					});
 				} finally {
 					await teardown(connector);
@@ -370,7 +385,7 @@ describe('Interactive HWhile Connector', function () {
 					expect(await connector.step()).to.deep.equal({
 						cause: 'start',
 						variable: 'XY',
-						value: parseTree('<<nil.nil>.<<nil.<nil.nil>>.nil>>')
+						value: treeParser('<<nil.nil>.<<nil.<nil.nil>>.nil>>')
 					});
 					//Step through the program
 					expect(await connector.step()).to.deep.equal({
@@ -406,7 +421,7 @@ describe('Interactive HWhile Connector', function () {
 					expect(await connector.step()).to.deep.equal({
 						cause: 'done',
 						variable: 'Y',
-						value: parseTree('<nil.<<nil.<nil.nil>>.nil>>'),
+						value: treeParser('<nil.<<nil.<nil.nil>>.nil>>'),
 					});
 				} finally {
 					await teardown(connector);

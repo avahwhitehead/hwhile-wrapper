@@ -1,7 +1,7 @@
 import { ChildProcessWithoutNullStreams } from "child_process";
 import { CustomDict } from "./types/CustomDict";
 import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
-import parseTree, { BinaryTree } from "./parsers/TreeParser";
+import { BinaryTree, treeParser } from "@whide/tree-lang";
 import { EventEmitter } from "events";
 
 export interface ProgramInfo {
@@ -185,7 +185,7 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			result = {
 				cause: 'done',
 				variable: match[1],
-				value: parseTree(match[2]),
+				value: treeParser(match[2]),
 			};
 		} else if (first === 'Hit breakpoint.') {
 			//Program stopped at breakpoint
@@ -239,14 +239,14 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			result = {
 				cause: 'start',
 				variable: match[1],
-				value: parseTree(match[2]),
+				value: treeParser(match[2]),
 			};
 		} else if ((match = first.match(/^wrote (.+?) = (.+)$/))) {
 			//Program finished executing
 			result = {
 				cause: 'done',
 				variable: match[1],
-				value: parseTree(match[2]),
+				value: treeParser(match[2]),
 			};
 		} else if ((match = first.match(/^(.+), line (\d+):/))) {
 			lines.shift();
@@ -287,7 +287,7 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			//Get the program's variables
 			let p = variables.get(match[1]) || new Map();
 			//Add this variable to the list
-			p.set(match[2], parseTree(match[3]));
+			p.set(match[2], treeParser(match[3]));
 			//Save the updated variables
 			variables.set(match[1], p);
 		}
