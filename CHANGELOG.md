@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.7.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.6.2...v1.7.0) (2021-05-03)
+
+
+### Features
+
+* switched to using the @whide/tree-lang package to provide a more general binary tree parser ([d4f93e7](https://github.com/sonrad10/hwhile-wrapper/commit/d4f93e785e5462076e7c3d1b428f5f5f03b17268))
+
 ### [1.6.2](https://github.com/sonrad10/hwhile-wrapper/compare/v1.6.1...v1.6.2) (2021-04-10)
 
 
