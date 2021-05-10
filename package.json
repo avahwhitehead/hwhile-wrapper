@@ -19,7 +19,7 @@
   "author": "Alaric Whitehead",
   "license": "MIT",
   "dependencies": {
-    "@whide/tree-lang": "^1.5.2"
+    "@whide/tree-lang": "^1.5.3"
   },
   "devDependencies": {
     "@types/chai": "^4.2.17",
