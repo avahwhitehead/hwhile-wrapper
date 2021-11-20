@@ -1,8 +1,7 @@
 import { expect } from "chai";
 import { describe, it } from "mocha";
 import * as path from "path";
-import { CustomDict } from "../src/types/CustomDict";
-import { InteractiveHWhileConnector, ProgramInfo } from "../src";
+import { InteractiveHWhileConnector, ProgramInfo, RunResultType } from "../src";
 import { BinaryTree, treeParser } from "@whide/tree-lang";
 
 /**
@@ -86,8 +85,11 @@ describe('Interactive HWhile Connector', function () {
 				try {
 					let programInfo: ProgramInfo = await connector.load('count', '[4, 5]');
 					expect(programInfo.name).to.eql('count');
+					expect(programInfo.line).to.eql(0);
 					expect(programInfo.variables).to.eql(new Map());
+					expect(programInfo.allVariables).to.eql(new Map());
 					expect(programInfo.breakpoints).to.eql([]);
+					expect(programInfo.allBreakpoints).to.eql(new Map());
 				} finally {
 					await teardown(connector);
 				}
@@ -148,7 +150,7 @@ describe('Interactive HWhile Connector', function () {
 				let connector = await setup();
 				return connector.addBreakpoint(3)
 					.then(() => { throw new Error('was not supposed to succeed'); })
-					.catch(m => { expect(m).to.match(/.*Can't set breakpoints without a program.*/); })
+					.catch(m => { expect(m).to.match(/.*Can't update breakpoints without a program.*/); })
 					.finally(async () => teardown(connector));
 			});
 		});
@@ -158,34 +160,27 @@ describe('Interactive HWhile Connector', function () {
 				let connector = await setup();
 				try {
 					//The breakpoints to add for different programs
-					let expected : CustomDict<number[]> = {
-						'prog1': [5,3,1],
-						'prog2': [2,4,6],
-					};
+					let expected : Map<string,number[]> = new Map<string, number[]>([
+						['prog1', [1,3,5]],
+						['prog2', [2,4,6]],
+					]);
 					//Add all the breakpoints
-					for (let [prog, breakpoints] of Object.entries(expected)) {
+					// @ts-ignore
+					for (let [prog, breakpoints] of expected.entries()) {
 						for (let b of breakpoints) {
 							await connector.addBreakpoint(b, prog);
 						}
 					}
 
-					let actual = await connector.breakpoints();
+					let actual = await connector.breakpointsMap();
 					//Check all the programs (and only these programs) exist
-					expect(actual).to.have.all.keys(Object.keys(expected));
-					expect(expected).to.have.all.keys(Object.keys(actual));
-					//Check the breakpoints match
-					for (let key of Object.keys(actual)) {
-						expect(Array.from(actual[key])).to.have.same.members(expected[key]);
-					}
+					expect(actual).to.deep.equal(expected);
 
 					//Remove the breakpoints from prog1
-					for (let b of expected['prog1']) await connector.delBreakpoint(b, 'prog1');
-					let actual_removed = await connector.breakpoints();
-					//Check prog1 has no breakpoints
-					expect(actual_removed).to.not.have.key('prog1');
-					//Check prog2 has not changed
-					expect(actual_removed).to.have.key('prog2');
-					expect(Array.from(actual_removed['prog2'])).to.deep.equal(expected['prog2']);
+					for (let b of expected.get('prog1')!) await connector.delBreakpoint(b, 'prog1');
+					let actual_removed = await connector.breakpointsMap();
+					expected.delete('prog1')
+					expect(actual_removed).to.deep.equal(expected);
 				} finally {
 					await teardown(connector);
 				}
@@ -209,10 +204,11 @@ describe('Interactive HWhile Connector', function () {
 					//====
 					for (let b of expected) await connector.addBreakpoint(b);
 					//Get the stored breakpoints
-					let actual = await connector.breakpoints();
+					let actual = await connector.breakpointsMap();
 					//Check the program exists in the result and has only these breakpoints
-					expect(actual).to.have.key(PROG);
-					expect(Array.from(actual[PROG])).to.have.same.members(expected);
+					expect(actual).to.deep.equal(new Map([
+						[PROG, [1,3,5,6,7]]
+					]));
 
 					//====
 					//Test removing the breakpoints
@@ -224,15 +220,12 @@ describe('Interactive HWhile Connector', function () {
 
 					//Remove the remaining breakpoints
 					for (let b of expected) await connector.delBreakpoint(b);
-					let actual_removed = await connector.breakpoints();
 					//Check the program exists in the result and has only one breakpoint
-					expect(actual_removed).to.have.key(PROG);
-					expect(Array.from(actual_removed[PROG])).to.deep.equal([v]);
+					expect(await connector.breakpointsMap()).to.deep.equal(new Map([[PROG, [v]]]));
 
 					//Delete the remaining breakpoint
 					await connector.delBreakpoint(v);
-					let actual_removed_2 = await connector.breakpoints();
-					expect(actual_removed_2).to.not.have.key(PROG);
+					expect(await connector.breakpointsMap()).to.deep.equal(new Map());
 				} finally {
 					await teardown(connector);
 				}
@@ -306,14 +299,32 @@ describe('Interactive HWhile Connector', function () {
 			it('should produce 12', async function () {
 				let connector = await setup();
 				try {
-					//Load the program
+					//Load and run the program
 					await connector.load('count', '[3,4,5]');
+					const res: RunResultType = await connector.run();
 					//Validate the result
-					expect(await connector.run()).to.deep.equal({
+					const variables = new Map([
+						['ELEM', null],
+						['LIST', null],
+						['SUM', tn(12)],
+					]);
+					const expected = {
+						name: 'count',
 						cause: 'done',
+						done: true,
+						line: undefined,
 						variable: 'SUM',
 						value: tn(12),
-					});
+						allVariables: new Map([['count', variables]]),
+						variables: variables,
+						allBreakpoints: new Map(),
+						breakpoints: [],
+					};
+					//The objects should be equal
+					for (let [k,v] of Object.entries(expected)) {
+						expect(res).to.have.deep.property(k, v);
+					}
+					expect(expected).to.have.all.keys(Object.keys(res));
 				} finally {
 					await teardown(connector);
 				}
@@ -326,36 +337,67 @@ describe('Interactive HWhile Connector', function () {
 				try {
 					//Load the program
 					await connector.load('count', '[3,4,5]');
-
 					//Break on a line that's only executed once
 					await connector.addBreakpoint(7, 'count');
-					expect(await connector.run()).to.deep.equal({
+					//Run the program
+					let res = await connector.run();
+
+					//Check the expected result
+					let variables = new Map([
+						['LIST', t(tn(3), t(tn(4), t(tn(5), null)))]
+					]);
+					const breakpoints = [7];
+					const expected: RunResultType = {
+						name: 'count',
 						cause: 'breakpoint',
 						line: 7,
-					});
+						variables: variables,
+						allVariables: new Map([['count', variables]]),
+						breakpoints: breakpoints,
+						allBreakpoints: new Map([['count', breakpoints]]),
+						done: false,
+					};
+					//The objects should be equal
+					for (let [k,v] of Object.entries(expected)) {
+						expect(res).to.have.deep.property(k, v);
+					}
+					expect(expected).to.have.all.keys(Object.keys(res));
 
 					//Break on a line that's executed repeatedly
 					const BREAK_LINE = 10;
 					await connector.addBreakpoint(BREAK_LINE, 'count');
 					//Validate the result
-					expect(await connector.run()).to.deep.equal({
-						cause: 'breakpoint',
-						line: BREAK_LINE,
-					});
-					expect(await connector.run()).to.deep.equal({
-						cause: 'breakpoint',
-						line: BREAK_LINE,
-					});
-					expect(await connector.run()).to.deep.equal({
-						cause: 'breakpoint',
-						line: BREAK_LINE,
-					});
+					res = await connector.run();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', BREAK_LINE);
+
+					res = await connector.run();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', BREAK_LINE);
+
+					res = await connector.run();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', BREAK_LINE);
 
 					//Run to completion
+					variables = new Map([
+						['ELEM', null],
+						['LIST', null],
+						['SUM', tn(12)],
+					]);
 					expect(await connector.run()).to.deep.equal({
+						name: 'count',
 						cause: 'done',
+						done: true,
+						line: undefined,
 						variable: 'SUM',
 						value: tn(12),
+						breakpoints: [7, 10],
+						allBreakpoints: new Map([
+							['count', [7,10]]
+						]),
+						allVariables: new Map([['count', variables]]),
+						variables: variables,
 					});
 				} finally {
 					await teardown(connector);
@@ -382,47 +424,45 @@ describe('Interactive HWhile Connector', function () {
 					//Load the program
 					await connector.load('add', '[1,2]');
 					//First step reads the input
-					expect(await connector.step()).to.deep.equal({
-						cause: 'start',
-						variable: 'XY',
-						value: treeParser('<<nil.nil>.<<nil.<nil.nil>>.nil>>')
-					});
+					let res = await connector.step();
+					expect(res).to.have.property('cause', 'start');
+					expect(res).to.have.property('variable', 'XY');
+					expect(res).to.have.deep.property('value', treeParser('<<nil.nil>.<<nil.<nil.nil>>.nil>>'));
+
 					//Step through the program
-					expect(await connector.step()).to.deep.equal({
-						cause: 'breakpoint',
-						line: 6,
-						note: 'X = <nil.nil>',
-					});
-					expect(await connector.step()).to.deep.equal({
-						cause: 'breakpoint',
-						line: 7,
-						note: 'Y = <<nil.<nil.nil>>.nil>'
-					});
-					expect(await connector.step()).to.deep.equal({
-						cause: 'breakpoint',
-						line: 8,
-						note: 'Entered or re-entered while-loop.'
-					});
-					expect(await connector.step()).to.deep.equal({
-						cause: 'breakpoint',
-						line: 9,
-						note: 'Y = <nil.<<nil.<nil.nil>>.nil>>'
-					});
-					expect(await connector.step()).to.deep.equal({
-						cause: 'breakpoint',
-						line: 10,
-						note: 'X = nil'
-					});
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', 6);
+					expect(res).to.have.property('note', 'X = <nil.nil>');
+
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', 7);
+					expect(res).to.have.property('note', 'Y = <<nil.<nil.nil>>.nil>');
+
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', 8);
+					expect(res).to.have.property('note', 'Entered or re-entered while-loop.');
+
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', 9);
+					expect(res).to.have.property('note', 'Y = <nil.<<nil.<nil.nil>>.nil>>');
+
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'breakpoint');
+					expect(res).to.have.property('line', 10);
+					expect(res).to.have.property('note', 'X = nil');
+
 					//Program leaves the loop
-					expect(await connector.step()).to.deep.equal({
-						cause: 'loop-exit',
-					});
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'loop-exit');
 					//Program finishes
-					expect(await connector.step()).to.deep.equal({
-						cause: 'done',
-						variable: 'Y',
-						value: treeParser('<nil.<<nil.<nil.nil>>.nil>>'),
-					});
+					res = await connector.step();
+					expect(res).to.have.property('cause', 'done');
+					expect(res).to.have.property('variable', 'Y');
+					expect(res).to.have.deep.property('value', treeParser('<nil.<<nil.<nil.nil>>.nil>>'));
 				} finally {
 					await teardown(connector);
 				}

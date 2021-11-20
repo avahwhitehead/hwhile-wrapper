@@ -4,18 +4,53 @@ import { HWhileConnector, HWhileConnectorProps } from "./HwhileConnector";
 import { BinaryTree, treeParser } from "@whide/tree-lang";
 import { EventEmitter } from "events";
 
-export interface ProgramInfo {
-	name: string;
-	variables: Map<string, BinaryTree>;
+/**
+ * Type of objects returned after executing a program.
+ */
+export type ProgramInfo = {
+	/**
+	 * The name of the current program.
+	 * Only {@code undefined} before a program is loaded
+	 */
+	name?: string;
+	/**
+	 * The variable values in the current program.
+	 * Map structure is {@code variable -> value}
+	 */
+	variables: Map<string, BinaryTree>,
+	/**
+	 * The variable values in each program.
+	 * Map structure is {@code program -> (variable -> value)}
+	 */
+	allVariables: Map<string, Map<string, BinaryTree>>,
+	/**
+	 * All the breakpoints defined in the current program
+	 */
 	breakpoints: number[],
+	/**
+	 * All the breakpoints defined in all the programs
+	 */
+	allBreakpoints: Map<string, number[]>
+	/**
+	 * The current line in the program execution.
+	 */
+	line?: number,
+	/**
+	 * Whether the program is terminated.
+	 */
+	done?: boolean,
 }
 
-export type StepResultType = { cause: 'breakpoint'; line: number; note?: string; }
-		| { cause: 'start' | 'done'; variable: string; value: BinaryTree }
-		| { cause: 'loop-exit' };
+export type StepResultType = ProgramInfo & (
+	{ cause: 'breakpoint'; note?: string; }
+	| { cause: 'start'|'done'; variable: string; value: BinaryTree }
+	| { cause: 'loop-exit' }
+);
 
-export type RunResultType = { cause: 'breakpoint'; line: number; }
-		| { cause: 'done'; variable: string; value: BinaryTree };
+export type RunResultType = ProgramInfo & (
+	{ cause: 'breakpoint'; }
+	| { cause: 'done'; variable: string; value: BinaryTree }
+);
 
 /**
  * Class for controlling HWhile's interactive mode.
@@ -39,8 +74,10 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	private readonly _dataCallbacks: ((lines: string[], original: string) => void)[] = [];
 	//Store the outputted lines across multiple 'data' events until an input prompt is detected
 	private _outputHolder : string[] = [];
-	//Program information store
-	private _programInfo: ProgramInfo|undefined;
+
+	private _progName: string|undefined;
+	private _currentLine: number|undefined;
+	private _isDone: boolean|undefined;
 
 	//TODO: Queue commands for execution rather than sending immediately
 
@@ -71,9 +108,9 @@ export class InteractiveHWhileConnector extends EventEmitter {
 					//See if there are any callbacks waiting for data
 					let dataCallback: ((data: string[], original: string) => void) | undefined = this._dataCallbacks.shift();
 					//Call the callback with the output data
-					if (dataCallback) dataCallback(this._outputHolder.filter(s => !!s), str);
+					if (dataCallback) dataCallback(this._outputHolder, str);
 					//Clear the line store
-					this._outputHolder = []
+					this._outputHolder = [];
 				} else {
 					//The last line is data - add it to the output store
 					this._outputHolder.push(last);
@@ -163,15 +200,10 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		let result = lines.shift();
 
 		if (result && result.match(/^Program '(.+)' loaded/)) {
-			this._programInfo = {
-				name: p,
-				variables: new Map<string, BinaryTree>(),
-				breakpoints: [],
-			};
-			// Check for existing breakpoints
-			let breakpoints: CustomDict<Set<number>> = await this.breakpoints(outputState);
-			if (breakpoints[p]) this._programInfo.breakpoints = Array.from(breakpoints[p]);
-			return this._programInfo;
+			this._progName = p;
+			this._currentLine = 0;
+			this._isDone = false;
+			return this._updateProgramState(outputState);
 		} else {
 			throw new Error(`Unexpected output: "${result}"`);
 		}
@@ -184,11 +216,10 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	 * @returns {RunResultType}	A state object describing the state of the program at the point that the execution stops.
 	 */
 	async run(output = true, outputState = false) : Promise<RunResultType> {
-		if (!this._programInfo) throw new Error("No program to run");
+		if (!this._progName) throw new Error("No program to run");
 
 		//Run the program
 		let lines: string[] = await this.execute(':run', output, outputState);
-
 		//Remove the command string
 		lines.shift();
 
@@ -197,8 +228,8 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		//Shouldn't happen
 		if (!first) throw new Error("Expected output, received nothing");
 
-		//Object to return
-		let result : RunResultType;
+		//Object to return with the program state
+		let result : { cause: 'breakpoint'; } | { cause: 'done'; variable: string; value: BinaryTree };
 
 		let match;
 		if ((match = first.match(/^wrote (.+?) = (.+)$/))) {
@@ -208,8 +239,13 @@ export class InteractiveHWhileConnector extends EventEmitter {
 				variable: match[1],
 				value: treeParser(match[2]),
 			};
+			//Program execution done - update the state
+			this._currentLine = undefined;
+			this._isDone = true;
 		} else if (first === 'Hit breakpoint.') {
 			//Program stopped at breakpoint
+			result = { cause: 'breakpoint' };
+
 			let line = lines.shift();
 			//Shouldn't ever happen
 			if (!line) throw new Error('Unexpected end to output');
@@ -218,19 +254,18 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			let match = line.match(/^(.+), line (\d+):/);
 			//Shouldn't ever happen
 			if (!match) throw new Error(`Unexpected output: "${line}"`);
-			//Stopped on a breakpoint
-			result = {
-				cause: 'breakpoint',
-				line: Number.parseInt(match[2]),
-			};
+			//Update the current line and program name in the state
+			this._progName = match[1];
+			this._currentLine = Number.parseInt(match[2]);
 		} else {
 			throw new Error(`Unexpected output: "${first}"`);
 		}
 
-		//Update the stored variables
-		await this.store(outputState);
-
-		return result;
+		return {
+			//Update the stored variables
+			...(await this._updateProgramState(outputState)),
+			...result,
+		};
 	}
 
 	/**
@@ -240,11 +275,9 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	 * @returns {StepResultType}	A state object describing the state of the program after the next line has finished executing.
 	 */
 	async step(output = true, outputState = false) : Promise<StepResultType> {
-		if (!this._programInfo) throw new Error("No program to run");
-
+		if (!this._progName) throw new Error("No program to run");
 		//Run the next line
 		let lines : string[]  = await this.execute(`:step`, output, outputState);
-
 		//Remove the command string
 		lines.shift();
 
@@ -253,8 +286,10 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		//Shouldn't happen
 		if (!first) throw new Error("Expected output, received nothing");
 
-		//Object to return
-		let result : StepResultType;
+		//Object to return with the program state
+		let result : { cause: 'breakpoint'; note?: string; }
+			| { cause: 'start'|'done'; variable: string; value: BinaryTree }
+			| { cause: 'loop-exit' };
 
 		let match;
 		if ((match = first.match(/^read (.+?) = (.+)$/))) {
@@ -271,12 +306,18 @@ export class InteractiveHWhileConnector extends EventEmitter {
 				variable: match[1],
 				value: treeParser(match[2]),
 			};
+			//Program execution done - update the state
+			this._currentLine = undefined;
+			this._isDone = true;
 		} else if ((match = first.match(/^(.+), line (\d+):/))) {
 			lines.shift();
+			//Update the current line and program name in the state
+			this._progName = match[1];
+			this._currentLine = Number.parseInt(match[2]);
 			//Stopped after executing the line
 			result = {
 				cause: 'breakpoint',
-				line: Number.parseInt(match[2]),
+				//The last line executed as a string
 				note: lines.shift(),
 			};
 		} else if (first === 'Skipped or exited while-loop.') {
@@ -287,10 +328,11 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			throw new Error(`Unexpected output: "${first}"`);
 		}
 
-		//Update the stored variables
-		await this.store(outputState);
-
-		return result;
+		return {
+			//Update the stored variables
+			...(await this._updateProgramState(outputState)),
+			...result,
+		};
 	}
 
 	/**
@@ -316,11 +358,6 @@ export class InteractiveHWhileConnector extends EventEmitter {
 			variables.set(match[1], p);
 		}
 
-		//If a program is loaded, update the variable values
-		if (this._programInfo) {
-			this._programInfo.variables = variables.get(this._programInfo.name) || new Map();
-		}
-
 		return variables;
 	}
 
@@ -331,14 +368,17 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	 * @param output	Whether to emit the HWhile output string to listeners
 	 * @param outputState	Whether to emit the HWhile state commands output string to listeners
 	 */
-	async cd(dir: string, output = true, outputState = false) : Promise<void> {
+	async cd(dir: string, output = true, outputState = false) : Promise<ProgramInfo> {
 		await this.execute(`:cd ${dir}`, output, outputState);
+		return await this._updateProgramState(outputState);
 	}
 
 	/**
 	 * Get all the breakpoints currently active in the program.
 	 * @param output		Whether to emit the HWhile output string to listeners
 	 * @param outputState	Whether to emit the HWhile state commands output string to listeners
+	 *
+	 * @deprecated	Use {@link breakpointsMap} instead
 	 */
 	async breakpoints(output = true, outputState = false) : Promise<CustomDict<Set<number>>> {
 		//Execute the break command and waits for the output
@@ -358,15 +398,38 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	}
 
 	/**
+	 * Get all the breakpoints currently active in the program.
+	 * @param output		Whether to emit the HWhile output string to listeners
+	 * @param outputState	Whether to emit the HWhile state commands output string to listeners
+	 */
+	async breakpointsMap(output = true, outputState = false) : Promise<Map<string, number[]>> {
+		//Execute the break command and waits for the output
+		let lines = await this.execute(`:break`, output, outputState);
+		//Get all the lines describing a breakpoint
+		let matches = this._runMatch(lines, /^Program '(.+)', line (\d+)\.$/);
+		//Convert the list of strings to the return type
+		let breakpoints: Map<string, number[]> = new Map();
+		for (let match of matches) {
+			//The program name
+			let prog: string = match[1];
+			//Save the breakpoint under the name of its program
+			const b = breakpoints.get(prog) || [];
+			b.push(Number.parseInt(match[2]));
+			breakpoints.set(prog, b);
+		}
+		return breakpoints;
+	}
+
+	/**
 	 * Add a breakpoint on line 'n' of the program 'p', or the loaded program if `p` is not provided.
 	 * @param n				Line number to add the break point
 	 * @param p				Optional program to add the breakpoint to.
 	 * @param output		Whether to emit the HWhile output string to listeners
 	 * @param outputState	Whether to emit the HWhile state commands output string to listeners
 	 */
-	async addBreakpoint(n: number, p?: string, output = true, outputState = false) : Promise<void> {
+	async addBreakpoint(n: number, p?: string, output = true, outputState = false) : Promise<ProgramInfo> {
 		//Error if HWhile won't be able to set the breakpoint
-		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
+		if (!p && !this._progName) throw new Error("Can't update breakpoints without a program. Please load a program, or specify one explicitly.");
 
 		let lines: string[] = await this.execute(`:break ${n} ${p || ''}`, output, outputState);
 		//Remove the command string
@@ -375,6 +438,7 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		if (!last || !last.match(/^Breakpoint set in program .+ at line \d+\.$/)) {
 			throw new Error(`Unexpected output: "${last}"`);
 		}
+		return await this._updateProgramState(outputState);
 	}
 
 	/**
@@ -384,9 +448,9 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	 * @param output		Whether to emit the HWhile output string to listeners
 	 * @param outputState	Whether to emit the HWhile state commands output string to listeners
 	 */
-	async delBreakpoint(n: number, p?: string, output = true, outputState = false) : Promise<void> {
+	async delBreakpoint(n: number, p?: string, output = true, outputState = false) : Promise<ProgramInfo> {
 		//Error if HWhile won't be able to clear the breakpoint
-		if (!p && !this._programInfo) throw new Error("Can't set breakpoints without a program. Please load a program, or specify one explicitly.");
+		if (!p && !this._progName) throw new Error("Can't update breakpoints without a program. Please load a program, or specify one explicitly.");
 
 		let lines: string[] = await this.execute(`:delbreak ${n} ${p || ''}`, output, outputState);
 		//Remove the command string
@@ -395,6 +459,12 @@ export class InteractiveHWhileConnector extends EventEmitter {
 		if (!last || !last.match(/^Breakpoint removed from program .+ at line \d+\.$/)) {
 			throw new Error(`Unexpected output: "${last}"`);
 		}
+		return await this._updateProgramState(outputState);
+	}
+
+	async setVariable(variable: string, value: string, output = true, outputState = false): Promise<ProgramInfo> {
+		await this.execute(`${variable} := ${value}`, true, outputState);
+		return await this._updateProgramState(outputState);
 	}
 
 	// ========
@@ -409,5 +479,19 @@ export class InteractiveHWhileConnector extends EventEmitter {
 	private _runMatch(lines: string[], matcher: string|RegExp) : RegExpMatchArray[] {
 		let matches = lines.map(line => line.match(matcher));
 		return matches.filter(m => !!m) as RegExpMatchArray[];
+	}
+
+	private async _updateProgramState(outputState = false): Promise<ProgramInfo> {
+		const variables = await this.store(outputState, outputState);
+		const breakpoints = await this.breakpointsMap(outputState, outputState);
+		return {
+			allBreakpoints: breakpoints,
+			breakpoints: breakpoints.get(this._progName || '') || [],
+			variables: variables.get(this._progName || '') || new Map(),
+			allVariables: variables,
+			name: this._progName,
+			line: this._currentLine,
+			done: this._isDone,
+		};
 	}
 }
