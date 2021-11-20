@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+## [1.8.0](https://github.com/sonrad10/hwhile-wrapper/compare/v1.7.1...v1.8.0) (2021-11-20)
+
+
+### Features
+
+* made all functions return a program state object so store() and breakpoints() don't have be called as often ([9de4f23](https://github.com/sonrad10/hwhile-wrapper/commit/9de4f230072ee3b22f6fa044b4676ace6533919c))
+* made state monitoring commands (e.g. :store) have their output hidden by default ([7b6f78d](https://github.com/sonrad10/hwhile-wrapper/commit/7b6f78dd3b1bded0a89e1526712b029746345e79))
+
+
+### Bug Fixes
+
+* updated tree-lang dependency to latest version ([6fdc5d2](https://github.com/sonrad10/hwhile-wrapper/commit/6fdc5d21b6a458c428adeb6320f5d569217a9bdf))
+
 ### [1.7.1](https://github.com/sonrad10/hwhile-wrapper/compare/v1.7.0...v1.7.1) (2021-05-10)
 
 
